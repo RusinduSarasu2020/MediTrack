@@ -1,10 +1,95 @@
 <!DOCTYPE html>
-<html lang="en">
+<html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <title>New Purchase Order - MediTrack</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
 </head>
 <body>
+<div th:replace="~{fragments/navbar :: navbar('orders')}"></div>
 
+<div class="container">
+    <a th:href="@{/purchase-orders}" class="back-link">&larr; Back to Purchase Orders</a>
+    <div class="page-header">
+        <h1>New Purchase Order</h1>
+    </div>
+
+    <div class="card">
+        <form th:action="@{/purchase-orders/save}" th:object="${order}" method="post">
+            <input type="hidden" th:field="*{orderId}">
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Supplier</label>
+                    <select name="supplierId" required>
+                        <option value="">-- Select Supplier --</option>
+                        <option th:each="s : ${suppliers}" th:value="${s.supplierId}" th:text="${s.companyName}"></option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Expected Delivery Date</label>
+                    <input type="date" th:field="*{expectedDeliveryDate}">
+                </div>
+            </div>
+
+            <h3 style="font-size:15px;">Medicines to Order</h3>
+            <div id="items-container">
+                <div class="item-row" th:each="item, iter : *{items}">
+                    <div class="form-group" style="flex:3;">
+                        <input type="text" th:field="*{items[__${iter.index}__].medicineName}" placeholder="Medicine name">
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <input type="number" th:field="*{items[__${iter.index}__].quantity}" placeholder="Qty" min="1">
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <input type="number" step="0.01" th:field="*{items[__${iter.index}__].unitPrice}" placeholder="Unit Price">
+                    </div>
+                    <div class="form-group" style="flex:1;">
+                        <input type="number" th:field="*{items[__${iter.index}__].currentStockLevel}" placeholder="Current Stock">
+                    </div>
+                </div>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="addItemRow()">+ Add Another Medicine</button>
+            <p style="font-size:12px;color:#9ca3af;margin-top:8px;">
+                Tip: leave a row blank (no medicine name) and it will be skipped automatically when saving.
+            </p>
+
+            <div class="form-group">
+                <label>Delivery Notes</label>
+                <textarea th:field="*{deliveryNotes}" rows="2" placeholder="Any special delivery instructions"></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Create Purchase Order</button>
+            <a th:href="@{/purchase-orders}" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    // Running index for newly added rows, starting after the rows already rendered by the server
+    let rowIndex = /*[[${order.items.size()}]]*/ 1;
+
+    function addItemRow() {
+        const container = document.getElementById('items-container');
+        const row = document.createElement('div');
+        row.className = 'item-row';
+        row.innerHTML = `
+            <div class="form-group" style="flex:3;">
+                <input type="text" name="items[${rowIndex}].medicineName" placeholder="Medicine name">
+            </div>
+            <div class="form-group" style="flex:1;">
+                <input type="number" name="items[${rowIndex}].quantity" placeholder="Qty" min="1">
+            </div>
+            <div class="form-group" style="flex:1;">
+                <input type="number" step="0.01" name="items[${rowIndex}].unitPrice" placeholder="Unit Price">
+            </div>
+            <div class="form-group" style="flex:1;">
+                <input type="number" name="items[${rowIndex}].currentStockLevel" placeholder="Current Stock">
+            </div>
+        `;
+        container.appendChild(row);
+        rowIndex++;
+    }
+</script>
 </body>
 </html>
