@@ -1,10 +1,56 @@
 <!DOCTYPE html>
-<html lang="en">
+<html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <title>Purchase Orders - MediTrack</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
 </head>
 <body>
+<div th:replace="~{fragments/navbar :: navbar('orders')}"></div>
 
+<div class="container">
+    <div class="page-header">
+        <h1>Purchase Orders</h1>
+        <a th:href="@{/purchase-orders/new}" class="btn btn-primary">+ New Purchase Order</a>
+    </div>
+
+    <form th:action="@{/purchase-orders}" method="get" class="search-bar">
+        <input type="text" name="keyword" th:value="${keyword}" placeholder="Search by order reference...">
+        <select name="status" onchange="this.form.submit()">
+            <option value="">All Statuses</option>
+            <option th:each="st : ${statuses}" th:value="${st}" th:text="${st}"
+                    th:selected="${st == selectedStatus}"></option>
+        </select>
+        <button type="submit" class="btn btn-secondary">Search</button>
+    </form>
+
+    <div class="card">
+        <table th:if="${!orders.isEmpty()}">
+            <thead>
+            <tr>
+                <th>Reference</th>
+                <th>Supplier</th>
+                <th>Status</th>
+                <th>Expected Delivery</th>
+                <th>Total (Rs.)</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="o : ${orders}">
+                <td th:text="${o.orderReference}"></td>
+                <td th:text="${o.supplier.companyName}"></td>
+                <td><span class="badge" th:classappend="'badge-' + ${#strings.toLowerCase(o.status)}" th:text="${o.status}"></span></td>
+                <td th:text="${o.expectedDeliveryDate} ?: '-'"></td>
+                <td th:text="${#numbers.formatDecimal(o.totalAmount, 1, 2)}"></td>
+                <td><a th:href="@{/purchase-orders/{id}(id=${o.orderId})}" class="btn btn-secondary btn-sm">View</a></td>
+            </tr>
+            </tbody>
+        </table>
+        <div class="empty-state" th:if="${orders.isEmpty()}">
+            No purchase orders found.
+        </div>
+    </div>
+</div>
 </body>
 </html>
