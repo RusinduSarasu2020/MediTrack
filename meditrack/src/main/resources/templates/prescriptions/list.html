@@ -1,10 +1,75 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/app :: app('Prescription Queue', ~{::main})}">
 
+<body>
+    <main>
+        <div class="page-header">
+            <div>
+                <div class="title-section">
+                    <h2>Prescription Queue</h2>
+                </div>
+                <p class="page-subtitle">Uploaded prescriptions awaiting pharmacist verification</p>
+            </div>
+            <div class="page-actions">
+                <a th:href="@{/pharmacist/dispensing}" class="btn btn-outline-secondary btn-icon"><span
+                        class="icon-assignment_turned_in"></span>Dispensing</a>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="table-toolbar">
+                <div class="search-field">
+                    <span class="icon-search"></span>
+                    <input type="search" class="form-control" placeholder="Search prescription, order or customer..."
+                        data-table-search="#rxTable">
+                </div>
+                <span class="table-count" data-table-count="#rxTable"></span>
+            </div>
+            <div class="table-wrap">
+                <table class="table table-hover" id="rxTable">
+                    <thead>
+                        <tr>
+                            <th>Prescription</th>
+                            <th>Customer</th>
+                            <th>Order</th>
+                            <th>Items</th>
+                            <th>Uploaded</th>
+                            <th>Status</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="rx : ${prescriptions}">
+                            <td class="cell-strong" th:text="'#' + ${rx.id}">#1</td>
+                            <td>
+                                <span
+                                    th:text="${rx.order.customer != null ? rx.order.customer.fullName : 'Walk-in'}">Customer</span>
+                                <span class="cell-sub"
+                                    th:text="${rx.order.customer != null ? rx.order.customer.phone : ''}">Phone</span>
+                            </td>
+                            <td><a th:href="@{/orders/{id}(id=${rx.order.id})}" th:text="'#' + ${rx.order.id}">#1</a>
+                            </td>
+                            <td th:text="${#lists.size(rx.order.items)} + ' item(s)'">2 item(s)</td>
+                            <td class="text-nowrap" th:text="${#temporals.format(rx.createdAt, 'yyyy-MM-dd HH:mm')}">
+                                2026-09-16 10:30</td>
+                            <td>
+                                <th:block th:replace="~{fragments/status :: rx(${rx.status})}"></th:block>
+                            </td>
+                            <td class="text-end">
+                                <a th:href="@{/pharmacist/prescriptions/{id}(id=${rx.id})}"
+                                    class="btn btn-primary btn-sm btn-icon"><span
+                                        class="icon-assignment"></span>Review</a>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(prescriptions)}" class="empty-row">
+                            <td colspan="7" class="empty-state"><span class="icon-done_all"></span>No prescriptions
+                                currently awaiting review.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
 </body>
+
 </html>
