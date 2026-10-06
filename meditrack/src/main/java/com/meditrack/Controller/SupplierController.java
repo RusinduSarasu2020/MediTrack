@@ -1,85 +1,112 @@
-package com.meditrack.meditrack.controller;
+package com.meditrack.controller;
 
-import com.meditrack.meditrack.model.PurchaseOrder;
-import com.meditrack.meditrack.model.Supplier;
-import com.meditrack.meditrack.service.PurchaseOrderService;
-import com.meditrack.meditrack.service.SupplierService;
+import com.meditrack.dto.SupplierForm;
+import com.meditrack.model.Supplier;
+import com.meditrack.model.User;
+import com.meditrack.service.ProcurementService;
+import com.meditrack.service.SupplierService;
+import com.meditrack.service.UserService;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-/**
- * Handles the Supplier Directory: create, view, search, update, deactivate suppliers.
- * Corresponds to Supplier Coordinator user stories PB-09/PB-12 support functions.
- */
 @Controller
-@RequestMapping("/suppliers")
-@RequiredArgsConstructor
 public class SupplierController {
 
     private final SupplierService supplierService;
-    private final PurchaseOrderService purchaseOrderService;
+    private final ProcurementService procurementService;
+    private final UserService userService;
 
-    @GetMapping
-    public String listSuppliers(@RequestParam(required = false) String keyword, Model model) {
-        model.addAttribute("suppliers", supplierService.searchByCompanyName(keyword));
-        model.addAttribute("keyword", keyword);
-        return "supplier/list";
+    public SupplierController(SupplierService supplierService, ProcurementService procurementService, UserService userService) {
+        this.supplierService = supplierService;
+        this.procurementService = procurementService;
+        this.userService = userService;
     }
 
-    @GetMapping("/new")
-    public String newSupplierForm(Model model) {
-        model.addAttribute("supplier", new Supplier());
-        return "supplier/form";
+    @GetMapping("/supplier/dashboard")
+    public String dashboard(Model model) {
+        model.addAttribute("suppliers", supplierService.findActive());
+        model.addAttribute("recentOrders", procurementService.findAllPurchaseOrders());
+        return "supplier/dashboard";
     }
 
-    @GetMapping("/{id}/edit")
-    public String editSupplierForm(@PathVariable Long id, Model model) {
-        model.addAttribute("supplier", supplierService.getSupplierById(id));
-        return "supplier/form";
+    @GetMapping("/suppliers")
+    public String list(Model model) {
+        model.addAttribute("suppliers", supplierService.findAll());
+        return "suppliers/list";
     }
 
-    @PostMapping("/save")
-    public String saveSupplier(@Valid @ModelAttribute("supplier") Supplier supplier,
-                                BindingResult result, Model model) {
-        if (result.hasErrors()) {
-            return "supplier/form";
+    @GetMapping("/suppliers/new")
+    public String createForm(Model model) {
+        model.addAttribute("form", new SupplierForm());
+        return "suppliers/form";
+    }
+
+    @PostMapping("/suppliers")
+    public String create(@Valid @ModelAttribute("form") SupplierForm form,
+                         BindingResult errors,
+                         Authentication authentication,
+                         RedirectAttributes redirectAttributes) {
+        if (errors.hasErrors()) {
+            return "suppliers/form";
         }
-        supplierService.saveSupplier(supplier);
+        User user = userService.findByUsername(authentication.getName());
+        supplierService.create(form, user.getId());
+        redirectAttributes.addFlashAttribute("successMessage", "Supplier registered successfully.");
         return "redirect:/suppliers";
     }
 
-    @GetMapping("/{id}")
-    public String viewSupplier(@PathVariable Long id, Model model) {
-        Supplier supplier = supplierService.getSupplierById(id);
-        model.addAttribute("supplier", supplier);
-
-        // Supplier performance snapshot
-        double onTimeRate = purchaseOrderService.calculateOnTimeDeliveryRate(supplier);
-        long totalOrders = purchaseOrderService.countTotalOrders(supplier);
-        model.addAttribute("onTimeRate", onTimeRate);
-        model.addAttribute("totalOrders", totalOrders);
-        model.addAttribute("orders", purchaseOrderService.getOrdersBySupplier(supplier));
-
-        return "supplier/view";
+    @GetMapping("/suppliers/{id}/edit")
+    public String editForm(@PathVariable Long id, Model model) {
+        Supplier s = supplierService.findById(id);
+        SupplierForm form = new SupplierForm();
+        form.setId(s.getId());
+        form.setCompanyName(s.getCompanyName());
+        form.setContactPerson(s.getContactPerson());
+        form.setEmail(s.getEmail());
+        form.setPhone(s.getPhone());
+        form.setAddress(s.getAddress());
+        form.setActive(s.isActive());
+        model.addAttribute("form", form);
+        return "suppliers/form";
     }
 
-    @PostMapping("/{id}/delete")
-    public String deleteSupplier(@PathVariable Long id) {
-        supplierService.deleteSupplier(id);
+    @PostMapping("/suppliers/{id}/edit")
+    public String update(@PathVariable Long id,
+                         @Valid @ModelAttribute("form") SupplierForm form,
+                         BindingResult errors,
+                         Authentication authentication,
+                         RedirectAttributes redirectAttributes) {
+        if (errors.hasErrors()) {
+            return "suppliers/form";
+        }
+        User user = userService.findByUsername(authentication.getName());
+        supplierService.update(id, form, user.getId());
+        redirectAttributes.addFlashAttribute("successMessage", "Supplier updated successfully.");
         return "redirect:/suppliers";
     }
 
-    @PostMapping("/{id}/toggle-status")
-    public String toggleStatus(@PathVariable Long id) {
-        Supplier supplier = supplierService.getSupplierById(id);
-        supplier.setStatus(supplier.getStatus() == Supplier.SupplierStatus.ACTIVE
-                ? Supplier.SupplierStatus.INACTIVE
-                : Supplier.SupplierStatus.ACTIVE);
-        supplierService.saveSupplier(supplier);
-        return "redirect:/suppliers/" + id;
+    @PostMapping("/suppliers/{id}/deactivate")
+    public String deactivate(@PathVariable Long id, Authentication authentication, RedirectAttributes redirectAttributes) {
+        User user = userService.findByUsername(authentication.getName());
+        supplierService.deactivate(id, user.getId());
+        redirectAttributes.addFlashAttribute("successMessage", "Supplier deactivated.");
+        return "redirect:/suppliers";
+    }
+
+    @PostMapping("/suppliers/{id}/delete")
+    public String delete(@PathVariable Long id, Authentication authentication, RedirectAttributes redirectAttributes) {
+        User user = userService.findByUsername(authentication.getName());
+        try {
+            supplierService.delete(id, user.getId());
+            redirectAttributes.addFlashAttribute("successMessage", "Supplier deleted successfully from directory.");
+        } catch (Exception ex) {
+            redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
+        }
+        return "redirect:/suppliers";
     }
 }
