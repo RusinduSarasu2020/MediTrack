@@ -1,102 +1,95 @@
-package com.meditrack.meditrack.controller;
+package com.meditrack.controller;
 
-import com.meditrack.meditrack.model.PurchaseOrder;
-import com.meditrack.meditrack.model.PurchaseOrderItem;
-import com.meditrack.meditrack.model.Supplier;
-import com.meditrack.meditrack.service.PurchaseOrderService;
-import com.meditrack.meditrack.service.SupplierService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
+import com.meditrack.dto.PurchaseOrderForm;
+import com.meditrack.model.PurchaseOrder;
+import com.meditrack.model.User;
+import com.meditrack.service.InventoryService;
+import com.meditrack.service.ProcurementService;
+import com.meditrack.service.SupplierService;
+import com.meditrack.service.UserService;
+import jakarta.validation.Valid;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.time.LocalDate;
-
-/**
- * Handles Purchase Order creation, approval workflow, and delivery tracking.
- * Covers PB-09 (view/process auto-generated POs) and PB-12 (update delivery status).
- */
 @Controller
 @RequestMapping("/purchase-orders")
-@RequiredArgsConstructor
 public class PurchaseOrderController {
 
-    private final PurchaseOrderService purchaseOrderService;
+    private final ProcurementService procurementService;
     private final SupplierService supplierService;
+    private final InventoryService inventoryService;
+    private final UserService userService;
+
+    public PurchaseOrderController(ProcurementService procurementService, SupplierService supplierService,
+                                   InventoryService inventoryService, UserService userService) {
+        this.procurementService = procurementService;
+        this.supplierService = supplierService;
+        this.inventoryService = inventoryService;
+        this.userService = userService;
+    }
 
     @GetMapping
-    public String listOrders(@RequestParam(required = false) String keyword,
-                              @RequestParam(required = false) PurchaseOrder.OrderStatus status,
-                              Model model) {
-        if (status != null) {
-            model.addAttribute("orders", purchaseOrderService.getOrdersByStatus(status));
-        } else {
-            model.addAttribute("orders", purchaseOrderService.searchByReference(keyword));
-        }
-        model.addAttribute("keyword", keyword);
-        model.addAttribute("statuses", PurchaseOrder.OrderStatus.values());
-        model.addAttribute("selectedStatus", status);
-        return "purchaseorder/list";
+    public String list(Model model) {
+        model.addAttribute("orders", procurementService.findAllPurchaseOrders());
+        return "purchase-orders/list";
     }
 
     @GetMapping("/new")
-    public String newOrderForm(Model model) {
-        PurchaseOrder order = new PurchaseOrder();
-        order.getItems().add(new PurchaseOrderItem());
-        model.addAttribute("order", order);
-        model.addAttribute("suppliers", supplierService.getActiveSuppliers());
-        return "purchaseorder/form";
+    public String createForm(Model model) {
+        model.addAttribute("form", new PurchaseOrderForm());
+        model.addAttribute("suppliers", supplierService.findActive());
+        model.addAttribute("medicines", inventoryService.findActiveMedicines());
+        return "purchase-orders/form";
     }
 
-    @PostMapping("/save")
-    public String saveOrder(@ModelAttribute("order") PurchaseOrder order,
-                             @RequestParam Long supplierId) {
-        Supplier supplier = supplierService.getSupplierById(supplierId);
-        order.setSupplier(supplier);
-
-        // Remove any blank line items submitted from the dynamic form
-        order.getItems().removeIf(item ->
-                item.getMedicineName() == null || item.getMedicineName().isBlank());
-
-        if (order.getOrderId() == null) {
-            purchaseOrderService.createOrder(order);
-        } else {
-            purchaseOrderService.updateOrder(order);
+    @PostMapping
+    public String create(@Valid @ModelAttribute("form") PurchaseOrderForm form,
+                         BindingResult errors,
+                         Authentication authentication,
+                         Model model,
+                         RedirectAttributes redirectAttributes) {
+        if (errors.hasErrors()) {
+            model.addAttribute("suppliers", supplierService.findActive());
+            model.addAttribute("medicines", inventoryService.findActiveMedicines());
+            return "purchase-orders/form";
         }
-        return "redirect:/purchase-orders";
+        User user = userService.findByUsername(authentication.getName());
+        try {
+            PurchaseOrder po = procurementService.createPurchaseOrder(form, user.getId());
+            redirectAttributes.addFlashAttribute("successMessage", "Draft purchase order #" + po.getId() + " created.");
+            return "redirect:/purchase-orders/" + po.getId();
+        } catch (Exception ex) {
+            errors.reject("poError", ex.getMessage());
+            model.addAttribute("suppliers", supplierService.findActive());
+            model.addAttribute("medicines", inventoryService.findActiveMedicines());
+            return "purchase-orders/form";
+        }
     }
 
     @GetMapping("/{id}")
-    public String viewOrder(@PathVariable Long id, Model model) {
-        model.addAttribute("order", purchaseOrderService.getOrderById(id));
-        model.addAttribute("statuses", PurchaseOrder.OrderStatus.values());
-        return "purchaseorder/view";
+    public String detail(@PathVariable Long id, Model model) {
+        PurchaseOrder po = procurementService.findPurchaseOrderById(id);
+        model.addAttribute("order", po);
+        return "purchase-orders/detail";
     }
 
-    @PostMapping("/{id}/status")
-    public String updateStatus(@PathVariable Long id,
-                                @RequestParam PurchaseOrder.OrderStatus status,
-                                @AuthenticationPrincipal UserDetails userDetails) {
-        String approvedBy = userDetails != null ? userDetails.getUsername() : "system";
-        purchaseOrderService.updateStatus(id, status, approvedBy);
-        return "redirect:/purchase-orders/" + id;
-    }
-
-    @PostMapping("/{id}/delivery")
-    public String updateDelivery(@PathVariable Long id,
-                                  @RequestParam(required = false)
-                                  @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE)
-                                  LocalDate expectedDeliveryDate,
-                                  @RequestParam(required = false) String deliveryNotes) {
-        purchaseOrderService.updateDeliveryInfo(id, expectedDeliveryDate, deliveryNotes);
+    @PostMapping("/{id}/confirm")
+    public String confirm(@PathVariable Long id, Authentication authentication, RedirectAttributes redirectAttributes) {
+        User user = userService.findByUsername(authentication.getName());
+        procurementService.confirmPurchaseOrder(id, user.getId());
+        redirectAttributes.addFlashAttribute("successMessage", "Purchase order #" + id + " confirmed as ORDERED.");
         return "redirect:/purchase-orders/" + id;
     }
 
     @PostMapping("/{id}/cancel")
-    public String cancelOrder(@PathVariable Long id) {
-        purchaseOrderService.cancelOrder(id);
+    public String cancel(@PathVariable Long id, Authentication authentication, RedirectAttributes redirectAttributes) {
+        User user = userService.findByUsername(authentication.getName());
+        procurementService.cancelPurchaseOrder(id, user.getId());
+        redirectAttributes.addFlashAttribute("successMessage", "Purchase order #" + id + " cancelled.");
         return "redirect:/purchase-orders/" + id;
     }
 }
