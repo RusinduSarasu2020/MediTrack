@@ -1,56 +1,73 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <title>Purchase Orders - MediTrack</title>
-    <link rel="stylesheet" th:href="@{/css/style.css}">
-</head>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/app :: app('Purchase Orders', ~{::main})}">
 <body>
-<div th:replace="~{fragments/navbar :: navbar('orders')}"></div>
-
-<div class="container">
+<main>
     <div class="page-header">
-        <h1>Purchase Orders</h1>
-        <a th:href="@{/purchase-orders/new}" class="btn btn-primary">+ New Purchase Order</a>
-    </div>
-
-    <form th:action="@{/purchase-orders}" method="get" class="search-bar">
-        <input type="text" name="keyword" th:value="${keyword}" placeholder="Search by order reference...">
-        <select name="status" onchange="this.form.submit()">
-            <option value="">All Statuses</option>
-            <option th:each="st : ${statuses}" th:value="${st}" th:text="${st}"
-                    th:selected="${st == selectedStatus}"></option>
-        </select>
-        <button type="submit" class="btn btn-secondary">Search</button>
-    </form>
-
-    <div class="card">
-        <table th:if="${!orders.isEmpty()}">
-            <thead>
-            <tr>
-                <th>Reference</th>
-                <th>Supplier</th>
-                <th>Status</th>
-                <th>Expected Delivery</th>
-                <th>Total (Rs.)</th>
-                <th></th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr th:each="o : ${orders}">
-                <td th:text="${o.orderReference}"></td>
-                <td th:text="${o.supplier.companyName}"></td>
-                <td><span class="badge" th:classappend="'badge-' + ${#strings.toLowerCase(o.status)}" th:text="${o.status}"></span></td>
-                <td th:text="${o.expectedDeliveryDate} ?: '-'"></td>
-                <td th:text="${#numbers.formatDecimal(o.totalAmount, 1, 2)}"></td>
-                <td><a th:href="@{/purchase-orders/{id}(id=${o.orderId})}" class="btn btn-secondary btn-sm">View</a></td>
-            </tr>
-            </tbody>
-        </table>
-        <div class="empty-state" th:if="${orders.isEmpty()}">
-            No purchase orders found.
+        <div>
+            <div class="title-section"><h2>Purchase Orders</h2></div>
+            <p class="page-subtitle">Supplier orders from draft through goods receipt</p>
+        </div>
+        <div class="page-actions">
+            <a th:href="@{/purchase-orders/new}" class="btn btn-primary btn-icon"><span class="icon-plus"></span>Create Purchase Order</a>
         </div>
     </div>
-</div>
+
+    <div class="panel">
+        <div class="table-toolbar">
+            <div class="search-field">
+                <span class="icon-search"></span>
+                <input type="search" class="form-control" placeholder="Search PO number or supplier..." data-table-search="#poTable">
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <select class="form-select" style="min-width: 200px;" data-table-filter="#poTable" aria-label="Filter by status">
+                    <option value="">All statuses</option>
+                    <option value="DRAFT">Draft</option>
+                    <option value="ORDERED">Ordered</option>
+                    <option value="PARTIALLY_RECEIVED">Partially received</option>
+                    <option value="RECEIVED">Received</option>
+                    <option value="CANCELLED">Cancelled</option>
+                </select>
+                <span class="table-count text-nowrap" data-table-count="#poTable"></span>
+            </div>
+        </div>
+        <div class="table-wrap">
+            <table class="table table-hover" id="poTable">
+                <thead>
+                <tr>
+                    <th>PO</th>
+                    <th>Supplier</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th>Expected</th>
+                    <th class="text-end">Items</th>
+                    <th class="text-end">Value (LKR)</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="po : ${orders}" th:attr="data-filter=${po.status}">
+                    <td class="cell-strong" th:text="'#' + ${po.id}">#1</td>
+                    <td th:text="${po.supplier.companyName}">PharmaCorp</td>
+                    <td><th:block th:replace="~{fragments/status :: po(${po.status})}"></th:block></td>
+                    <td class="text-nowrap" th:text="${#temporals.format(po.createdAt, 'yyyy-MM-dd HH:mm')}">2026-09-16</td>
+                    <td class="text-nowrap" th:text="${po.expectedDeliveryDate != null ? #temporals.format(po.expectedDeliveryDate, 'yyyy-MM-dd') : '-'}">2026-09-20</td>
+                    <td class="text-end" th:text="${#lists.size(po.items)}">2</td>
+                    <td class="text-end" th:text="${#lists.isEmpty(po.items) ? '0.00' : #numbers.formatDecimal(#aggregates.sum(po.items.![lineTotal]), 1, 'COMMA', 2, 'POINT')}">0.00</td>
+                    <td class="text-end">
+                        <div class="action-group">
+                            <a th:href="@{/purchase-orders/{id}(id=${po.id})}" class="btn btn-outline-secondary btn-sm btn-icon"><span class="icon-eye"></span>View</a>
+                            <a th:if="${po.status.name() == 'ORDERED' or po.status.name() == 'PARTIALLY_RECEIVED'}"
+                               th:href="@{/receipts/new(purchaseOrderId=${po.id})}" class="btn btn-outline-primary btn-sm btn-icon"><span class="icon-inbox"></span>Receive</a>
+                        </div>
+                    </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(orders)}" class="empty-row">
+                    <td colspan="8" class="empty-state"><span class="icon-file-text-o"></span>No purchase orders yet.</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
 </body>
 </html>
