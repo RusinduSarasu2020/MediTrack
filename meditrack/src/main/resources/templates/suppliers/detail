@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/app :: app(${supplier.companyName}, ~{::main})}">
+<body>
+<main>
+    <div class="page-header">
+        <div>
+            <div class="title-section"><h2 th:text="${supplier.companyName}">Supplier</h2></div>
+            <p class="page-subtitle">
+                <span th:text="'Supplier #' + ${supplier.id} + ' · since ' + ${#temporals.format(supplier.createdAt, 'yyyy-MM-dd')}">Supplier #1</span>
+                <span class="ms-2"><th:block th:replace="~{fragments/status :: active(${supplier.active})}"></th:block></span>
+            </p>
+        </div>
+        <div class="page-actions">
+            <a th:href="@{/suppliers}" class="btn btn-outline-secondary btn-icon"><span class="icon-arrow-left"></span>All Suppliers</a>
+            <a th:href="@{/suppliers/{id}/edit(id=${supplier.id})}" class="btn btn-primary btn-icon"><span class="icon-pencil"></span>Edit</a>
+            <form th:if="${supplier.active}" th:action="@{/suppliers/{id}/deactivate(id=${supplier.id})}" method="post"
+                  th:attr="data-confirm='Deactivate supplier ' + ${supplier.companyName} + '? It will no longer appear when creating purchase orders.'"
+                  data-confirm-label="Deactivate">
+                <button type="submit" class="btn btn-outline-warning btn-icon"><span class="icon-block"></span>Deactivate</button>
+            </form>
+            <form th:if="${referenceCount == 0}" th:action="@{/suppliers/{id}/delete(id=${supplier.id})}" method="post"
+                  th:attr="data-confirm='Permanently delete supplier ' + ${supplier.companyName} + '? This cannot be undone.'"
+                  data-confirm-label="Delete">
+                <button type="submit" class="btn btn-outline-danger btn-icon"><span class="icon-trash"></span>Delete</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="stat-tile tile-primary">
+                <span class="stat-icon icon-file-text-o"></span>
+                <span class="stat-label">Purchase Orders</span>
+                <div class="stat-value" th:text="${#lists.size(orders)}">0</div>
+                <span class="stat-note" th:text="${#lists.size(orders.?[status.name() == 'RECEIVED'])} + ' fully received'">0 received</span>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-tile tile-green">
+                <span class="stat-icon icon-layers"></span>
+                <span class="stat-label">Stock Batches Supplied</span>
+                <div class="stat-value" th:text="${#lists.size(batches)}">0</div>
+                <span class="stat-note" th:text="${#aggregates.sum(batches.![quantity]) ?: 0} + ' units currently on hand'">0 units</span>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-tile" th:classappend="${referenceCount > 0} ? 'tile-warning'">
+                <span class="stat-icon icon-security"></span>
+                <span class="stat-label">Deletion</span>
+                <div class="stat-value" style="font-size: 1.15rem;" th:text="${referenceCount > 0} ? 'Deactivate only' : 'Can be deleted'">-</div>
+                <span class="stat-note" th:text="${referenceCount > 0} ? 'Linked to orders or batches' : 'No linked records'">-</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-4">
+            <div class="panel h-100 mb-0">
+                <div class="panel-header"><h3 class="panel-title"><span class="icon-truck"></span>Contact</h3></div>
+                <div class="panel-body">
+                    <dl class="detail-list">
+                        <div class="row-item"><dt>Company</dt><dd th:text="${supplier.companyName}">-</dd></div>
+                        <div class="row-item"><dt>Contact person</dt><dd th:text="${supplier.contactPerson ?: '-'}">-</dd></div>
+                        <div class="row-item"><dt>Email</dt><dd>
+                            <a th:if="${supplier.email != null}" th:href="'mailto:' + ${supplier.email}" th:text="${supplier.email}">email</a>
+                            <span th:if="${supplier.email == null}">-</span></dd></div>
+                        <div class="row-item"><dt>Phone</dt><dd th:text="${supplier.phone ?: '-'}">-</dd></div>
+                        <div class="row-item"><dt>Address</dt><dd th:text="${supplier.address ?: '-'}">-</dd></div>
+                    </dl>
+                    <a th:if="${supplier.active}" th:href="@{/purchase-orders/new(supplierId=${supplier.id})}" class="btn btn-outline-primary btn-icon mt-3">
+                        <span class="icon-file-text-o"></span>New Purchase Order</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-8">
+            <div class="panel mb-4">
+                <div class="panel-header"><h3 class="panel-title"><span class="icon-file-text-o"></span>Purchase Orders</h3></div>
+                <div class="table-wrap">
+                    <table class="table table-hover">
+                        <thead><tr><th>PO</th><th>Created</th><th>Expected</th><th>Lines</th><th>Status</th></tr></thead>
+                        <tbody>
+                        <tr th:each="po : ${orders}">
+                            <td><a th:href="@{/purchase-orders/{id}(id=${po.id})}" class="cell-strong" th:text="'#' + ${po.id}">#1</a></td>
+                            <td class="text-nowrap" th:text="${#temporals.format(po.createdAt, 'yyyy-MM-dd')}">date</td>
+                            <td class="text-nowrap" th:text="${po.expectedDate ?: '-'}">date</td>
+                            <td th:text="${#lists.size(po.items)}">1</td>
+                            <td><th:block th:replace="~{fragments/status :: po(${po.status})}"></th:block></td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(orders)}" class="empty-row"><td colspan="5" class="empty-state">No purchase orders for this supplier.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="panel mb-0">
+                <div class="panel-header"><h3 class="panel-title"><span class="icon-layers"></span>Batches Supplied</h3></div>
+                <div class="table-wrap">
+                    <table class="table table-hover">
+                        <thead><tr><th>Batch</th><th>Medicine</th><th>Expiry</th><th class="text-end">Qty</th><th>Status</th></tr></thead>
+                        <tbody>
+                        <tr th:each="b : ${batches}">
+                            <td><a th:href="@{/inventory/batches/{id}(id=${b.id})}" class="cell-strong" th:text="${b.batchNumber}">B1</a></td>
+                            <td th:text="${b.medicine.brandName}">Med</td>
+                            <td class="text-nowrap" th:text="${b.expiryDate}">date</td>
+                            <td class="text-end" th:text="${b.quantity}">0</td>
+                            <td><th:block th:replace="~{fragments/status :: batch(${b})}"></th:block></td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(batches)}" class="empty-row"><td colspan="5" class="empty-state">No batches from this supplier.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+</body>
+</html>
