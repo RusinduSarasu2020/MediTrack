@@ -1,10 +1,55 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/app :: app('My Reviews', ~{::main})}">
 <body>
+<main>
+    <div class="page-header">
+        <div>
+            <div class="title-section"><h2>My Reviews</h2></div>
+            <p class="page-subtitle">Reviews you have written for completed orders</p>
+        </div>
+        <div class="page-actions">
+            <a th:href="@{/orders}" class="btn btn-outline-secondary btn-icon"><span class="icon-receipt"></span>My Orders</a>
+        </div>
+    </div>
 
+    <div class="panel">
+        <div class="table-wrap">
+            <table class="table table-hover">
+                <thead>
+                <tr>
+                    <th>Medicine</th>
+                    <th>Rating</th>
+                    <th>Comment</th>
+                    <th>Updated</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="r : ${reviews}">
+                    <td>
+                        <a class="cell-strong text-black" th:href="@{/catalog/{id}(id=${r.medicine.id})}" th:text="${r.medicine.brandName}">Medicine</a>
+                        <span class="cell-sub" th:text="'Order #' + ${r.order.id}">Order</span>
+                    </td>
+                    <td class="text-nowrap">
+                        <span class="rating-stars"><span th:each="star : ${#numbers.sequence(1, r.rating)}">&#9733;</span></span>
+                        <span class="cell-sub" th:text="${r.rating} + ' / 5'">5 / 5</span>
+                    </td>
+                    <td th:text="${r.comment}">Great product!</td>
+                    <td class="text-nowrap" th:text="${#temporals.format(r.updatedAt, 'yyyy-MM-dd')}">2026-09-16</td>
+                    <td class="text-end">
+                        <form th:action="@{/reviews/{id}/delete(id=${r.id})}" method="post"
+                              data-confirm="Delete this review? This cannot be undone." data-confirm-label="Delete">
+                            <button type="submit" class="btn btn-outline-danger btn-sm btn-icon"><span class="icon-trash"></span>Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(reviews)}" class="empty-row">
+                    <td colspan="5" class="empty-state"><span class="icon-star"></span>You haven't written any reviews yet.</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
 </body>
 </html>
