@@ -1,10 +1,97 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{layouts/site :: site(${medicine.brandName}, ~{::main})}">
 <body>
+<main>
+    <div class="bread-bar">
+        <div class="container">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a th:href="@{/}">Home</a></li>
+                    <li class="breadcrumb-item"><a th:href="@{/catalog}">Store</a></li>
+                    <li class="breadcrumb-item active" aria-current="page" th:text="${medicine.brandName}">Medicine</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
 
+    <div class="site-section site-section-sm">
+        <div class="container">
+            <th:block th:replace="~{fragments/alerts :: alerts}"></th:block>
+
+            <div class="row g-5">
+                <div class="col-lg-5">
+                    <div class="item text-center justify-content-center" style="min-height: 360px;">
+                        <span class="tag" th:if="${medicine.prescriptionRequired}">Rx</span>
+                        <span class="tag tag-otc" th:unless="${medicine.prescriptionRequired}">OTC</span>
+                        <div class="item-media item-media-lg">
+                            <img th:replace="~{fragments/medicine :: image(${medicine})}">
+                        </div>
+                        <div class="item-meta mb-0" th:text="${medicine.dosageForm} + ' · ' + ${medicine.strength}">Form</div>
+                    </div>
+                </div>
+
+                <div class="col-lg-7">
+                    <h1 class="text-black text-uppercase fw-bold mb-1" th:text="${medicine.brandName}">Brand Name</h1>
+                    <p class="text-muted mb-4" th:text="${medicine.genericName} + ' · ' + ${medicine.strength}">Generic</p>
+
+                    <p class="price-lg mb-1" th:text="${effectivePrice != null} ? 'LKR ' + ${#numbers.formatDecimal(effectivePrice, 1, 'COMMA', 2, 'POINT')} : 'Price unavailable'">LKR 0.00</p>
+                    <p class="small text-muted mb-3">Price based on the earliest-expiring active batch.</p>
+
+                    <p class="mb-4">
+                        <span class="status status-success" th:if="${saleableStock > 0}" th:text="${saleableStock} + ' in stock'">In stock</span>
+                        <span class="status status-danger" th:if="${saleableStock <= 0}">Out of stock</span>
+                        <span class="status status-orange ms-1" th:if="${medicine.prescriptionRequired}">Prescription required</span>
+                    </p>
+
+                    <div th:if="${medicine.prescriptionRequired}" class="alert alert-warning">
+                        <span class="alert-icon icon-assignment"></span>
+                        <div class="alert-body">You will be asked to upload a doctor's prescription at checkout. A pharmacist verifies it before payment.</div>
+                    </div>
+
+                    <!-- Add to cart: customers only (CartController requires a signed-in customer session) -->
+                    <form sec:authorize="hasRole('CUSTOMER')" th:if="${saleableStock > 0}" th:action="@{/cart/add}" method="post"
+                          class="d-flex flex-wrap align-items-end gap-3 mb-4">
+                        <input type="hidden" name="medicineId" th:value="${medicine.id}">
+                        <div>
+                            <label for="qty" class="form-label">Quantity</label>
+                            <input type="number" name="quantity" id="qty" class="form-control text-center" style="width: 110px;"
+                                   value="1" min="1" th:max="${saleableStock}">
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-lg btn-icon"><span class="icon-shopping-bag"></span>Add to Cart</button>
+                    </form>
+                    <a sec:authorize="isAnonymous()" th:if="${saleableStock > 0}" th:href="@{/login}" class="btn btn-primary btn-lg mb-4">Sign in to Order</a>
+                    <button th:if="${saleableStock <= 0}" class="btn btn-outline-secondary btn-lg mb-4" disabled>Out of Stock</button>
+
+                    <div class="filter-block">
+                        <h3>Medicine Information</h3>
+                        <dl class="detail-list">
+                            <div class="row-item"><dt>SKU</dt><dd th:text="${medicine.sku}">SKU</dd></div>
+                            <div class="row-item"><dt>Category</dt><dd th:text="${medicine.category != null ? medicine.category.name : '-'}">Category</dd></div>
+                            <div class="row-item"><dt>Dosage form</dt><dd th:text="${medicine.dosageForm}">Form</dd></div>
+                            <div class="row-item"><dt>Manufacturer</dt><dd th:text="${medicine.manufacturer ?: '-'}">Mfg</dd></div>
+                            <div class="row-item"><dt>Storage</dt><dd th:text="${medicine.storageClass ?: 'Standard storage'}">Storage</dd></div>
+                        </dl>
+                        <p class="mt-3 mb-0" th:if="${medicine.description}" th:text="${medicine.description}">Description</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mt-5">
+                <div class="col-12 title-section mb-4"><h2>Customer Reviews</h2></div>
+                <div class="col-lg-8">
+                    <div th:if="${#lists.isEmpty(reviews)}" class="text-muted">No reviews yet for this medicine.</div>
+                    <div th:each="rev : ${reviews}" class="border-bottom py-3">
+                        <div class="d-flex justify-content-between">
+                            <strong class="text-black" th:text="${rev.customer.fullName}">Customer</strong>
+                            <span class="rating-stars"><span th:each="s : ${#numbers.sequence(1, rev.rating)}">&#9733;</span></span>
+                        </div>
+                        <p class="mb-0 mt-1" th:text="${rev.comment}">Review comment</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
 </body>
 </html>
