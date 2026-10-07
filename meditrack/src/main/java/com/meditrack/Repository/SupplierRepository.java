@@ -1,13 +1,12 @@
-package com.meditrack.meditrack.repository;
+package com.meditrack.repository;
 
-import com.meditrack.meditrack.model.Supplier;
+import com.meditrack.model.Supplier;
 import org.springframework.data.jpa.repository.JpaRepository;
-
 import java.util.List;
+import java.util.Optional;
 
 public interface SupplierRepository extends JpaRepository<Supplier, Long> {
-
-    List<Supplier> findByStatus(Supplier.SupplierStatus status);
-
-    List<Supplier> findByCompanyNameContainingIgnoreCase(String companyName);
+    List<Supplier> findByActiveTrueOrderByCompanyNameAsc();
+    Optional<Supplier> findFirstByCompanyNameIgnoreCase(String companyName);
+    Optional<Supplier> findFirstByEmailIgnoreCase(String email);
 }
