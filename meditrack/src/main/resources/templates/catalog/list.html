@@ -1,10 +1,102 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/site :: site('Medicine Catalogue', ~{::main})}">
 <body>
+<main>
+    <div class="bread-bar">
+        <div class="container">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a th:href="@{/}">Home</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Store</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
 
+    <div class="site-section site-section-sm">
+        <div class="container">
+            <th:block th:replace="~{fragments/alerts :: alerts}"></th:block>
+
+            <div class="row align-items-end mb-5 g-3">
+                <div class="col-lg-6 title-section">
+                    <h2>Medicine Catalogue</h2>
+                    <p class="mt-3 mb-0">Browse available medicines, check stock and order online.</p>
+                </div>
+                <div class="col-lg-6">
+                    <form th:action="@{/catalog}" method="get" class="d-flex gap-2">
+                        <input type="hidden" name="categoryId" th:if="${selectedCategory != null}" th:value="${selectedCategory}">
+                        <input type="hidden" name="rx" th:if="${selectedRx != null}" th:value="${selectedRx}">
+                        <div class="search-field flex-grow-1" style="max-width: none;">
+                            <span class="icon-search"></span>
+                            <input type="search" name="q" class="form-control" placeholder="Search medicines..." th:value="${searchQuery}">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Search</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-lg-3">
+                    <div class="filter-block">
+                        <h3>Categories</h3>
+                        <ul class="filter-list">
+                            <li th:classappend="${selectedCategory == null} ? 'active'">
+                                <a th:href="@{/catalog(q=${searchQuery}, rx=${selectedRx})}">All categories</a>
+                            </li>
+                            <li th:each="cat : ${categories}" th:classappend="${selectedCategory == cat.id} ? 'active'">
+                                <a th:href="@{/catalog(categoryId=${cat.id}, q=${searchQuery}, rx=${selectedRx})}" th:text="${cat.name}">Category</a>
+                            </li>
+                        </ul>
+
+                        <h3>Prescription Type</h3>
+                        <ul class="filter-list mb-0">
+                            <li th:classappend="${selectedRx == null} ? 'active'">
+                                <a th:href="@{/catalog(categoryId=${selectedCategory}, q=${searchQuery})}">All types</a>
+                            </li>
+                            <li th:classappend="${selectedRx != null and !selectedRx} ? 'active'">
+                                <a th:href="@{/catalog(rx=false, categoryId=${selectedCategory}, q=${searchQuery})}">Over the counter (OTC)</a>
+                            </li>
+                            <li th:classappend="${selectedRx != null and selectedRx} ? 'active'">
+                                <a th:href="@{/catalog(rx=true, categoryId=${selectedCategory}, q=${searchQuery})}">Prescription only (Rx)</a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="col-lg-9">
+                    <div th:if="${#lists.isEmpty(medicines)}" class="filter-block empty-state">
+                        <span class="icon-search"></span>
+                        No medicines match your criteria.
+                        <div class="mt-3"><a th:href="@{/catalog}" class="btn btn-outline-secondary btn-sm">Reset filters</a></div>
+                    </div>
+
+                    <div class="row g-4" th:unless="${#lists.isEmpty(medicines)}">
+                        <div class="col-sm-6 col-xl-4" th:each="med : ${medicines}"
+                             th:with="stock=${inventoryService.getSaleableStockCount(med.id)}, price=${inventoryService.getEffectiveSellingPrice(med.id)}">
+                            <div class="item text-center">
+                                <span class="tag" th:if="${med.prescriptionRequired}">Rx</span>
+                                <span class="tag tag-otc" th:unless="${med.prescriptionRequired}">OTC</span>
+                                <a th:href="@{/catalog/{id}(id=${med.id})}" class="item-media" tabindex="-1" aria-hidden="true">
+                                    <img th:replace="~{fragments/medicine :: image(${med})}">
+                                </a>
+                                <div class="item-category" th:if="${med.category != null}" th:text="${med.category.name}">Category</div>
+                                <h3><a th:href="@{/catalog/{id}(id=${med.id})}" th:text="${med.brandName}">Brand Name</a></h3>
+                                <div class="item-meta" th:text="${med.genericName} + ' · ' + ${med.strength} + ' · ' + ${med.dosageForm}">Generic</div>
+                                <p class="price" th:text="${price != null} ? 'LKR ' + ${#numbers.formatDecimal(price, 1, 'COMMA', 2, 'POINT')} : 'Price unavailable'">LKR 0.00</p>
+                                <div class="stock">
+                                    <span th:if="${stock > 0}" class="status status-success" th:text="${stock} + ' in stock'">In stock</span>
+                                    <span th:if="${stock <= 0}" class="status status-danger">Out of stock</span>
+                                </div>
+                                <div class="item-actions">
+                                    <a th:href="@{/catalog/{id}(id=${med.id})}" class="btn btn-outline-primary btn-sm">View &amp; Order</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
 </body>
 </html>
