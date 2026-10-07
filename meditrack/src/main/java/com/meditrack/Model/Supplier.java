@@ -1,63 +1,70 @@
-package com.meditrack.meditrack.model;
+package com.meditrack.model;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import java.time.Instant;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-
-/**
- * Represents a supplier / vendor who provides medicines to the pharmacy.
- * Managed by the Supplier Coordinator.
- */
 @Entity
 @Table(name = "suppliers")
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class Supplier {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long supplierId;
+    private Long id;
 
-    @NotBlank(message = "Company name is required")
-    @Column(nullable = false)
+    @Column(nullable = false, length = 120)
     private String companyName;
 
-    @NotBlank(message = "Contact person is required")
+    @Column(length = 100)
     private String contactPerson;
 
-    @NotBlank(message = "Phone number is required")
-    private String phoneNumber;
-
-    @Email(message = "Enter a valid email")
-    @NotBlank(message = "Email is required")
+    @Column(length = 150)
     private String email;
 
-    @Column(length = 500)
+    @Column(length = 30)
+    private String phone;
+
+    @Column(length = 255)
     private String address;
 
-    /** Comma separated list of medicines supplied, e.g. "Paracetamol, Amoxicillin" */
-    @Column(length = 1000)
-    private String medicinesSupplied;
+    @Column(nullable = false)
+    private boolean active = true;
 
-    private String paymentTerms; // e.g. "Net 30", "Cash on Delivery"
+    @Column(nullable = false, updatable = false)
+    private Instant createdAt = Instant.now();
 
-    @Enumerated(EnumType.STRING)
-    private SupplierStatus status = SupplierStatus.ACTIVE;
+    public Supplier() {}
 
-    private LocalDateTime createdAt = LocalDateTime.now();
-
-    @OneToMany(mappedBy = "supplier", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<PurchaseOrder> purchaseOrders = new ArrayList<>();
-
-    public enum SupplierStatus {
-        ACTIVE, INACTIVE
+    public Supplier(String companyName, String contactPerson, String email, String phone, String address) {
+        this.companyName = companyName;
+        this.contactPerson = contactPerson;
+        this.email = email;
+        this.phone = phone;
+        this.address = address;
+        this.active = true;
+        this.createdAt = Instant.now();
     }
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
+    public String getCompanyName() { return companyName; }
+    public void setCompanyName(String companyName) { this.companyName = companyName; }
+
+    public String getContactPerson() { return contactPerson; }
+    public void setContactPerson(String contactPerson) { this.contactPerson = contactPerson; }
+
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
+
+    public String getAddress() { return address; }
+    public void setAddress(String address) { this.address = address; }
+
+    public boolean isActive() { return active; }
+    public void setActive(boolean active) { this.active = active; }
+
+    public Instant getCreatedAt() { return createdAt; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
 }
