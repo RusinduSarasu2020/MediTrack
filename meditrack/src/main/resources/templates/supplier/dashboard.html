@@ -1,10 +1,82 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/app :: app('Procurement Dashboard', ~{::main})}">
 <body>
+<main>
+    <div class="page-header">
+        <div>
+            <div class="title-section"><h2>Procurement Dashboard</h2></div>
+            <p class="page-subtitle">Suppliers, purchase orders and goods receipt</p>
+        </div>
+        <div class="page-actions">
+            <a th:href="@{/suppliers/new}" class="btn btn-outline-secondary btn-icon"><span class="icon-plus"></span>New Supplier</a>
+            <a th:href="@{/purchase-orders/new}" class="btn btn-primary btn-icon"><span class="icon-file-text-o"></span>Create Purchase Order</a>
+        </div>
+    </div>
 
+    <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <a th:href="@{/suppliers}" class="stat-tile tile-primary">
+                <span class="stat-icon icon-truck"></span>
+                <span class="stat-label">Active Suppliers</span>
+                <div class="stat-value" th:text="${#lists.size(suppliers)}">0</div>
+                <span class="stat-note">View directory &rarr;</span>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a th:href="@{/purchase-orders}" class="stat-tile tile-green">
+                <span class="stat-icon icon-file-text-o"></span>
+                <span class="stat-label">Purchase Orders</span>
+                <div class="stat-value" th:text="${#lists.size(recentOrders)}">0</div>
+                <span class="stat-note">View all orders &rarr;</span>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a th:href="@{/inventory/alerts}" class="stat-tile tile-warning">
+                <span class="stat-icon icon-warning"></span>
+                <span class="stat-label">Stock Alerts</span>
+                <div class="stat-value" style="font-size: 1.35rem;">Replenishment</div>
+                <span class="stat-note">Check low stock &amp; expiry &rarr;</span>
+            </a>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header">
+            <h3 class="panel-title"><span class="icon-file-text-o"></span>Purchase Orders</h3>
+            <a th:href="@{/purchase-orders}" class="btn btn-outline-secondary btn-sm">View All</a>
+        </div>
+        <div class="table-wrap">
+            <table class="table table-hover">
+                <thead>
+                <tr>
+                    <th>PO #</th>
+                    <th>Supplier</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th>Expected Delivery</th>
+                    <th>Items</th>
+                    <th class="text-end">Action</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="po : ${recentOrders}">
+                    <td class="cell-strong" th:text="'#' + ${po.id}">#1</td>
+                    <td th:text="${po.supplier.companyName}">PharmaCorp</td>
+                    <td><th:block th:replace="~{fragments/status :: po(${po.status})}"></th:block></td>
+                    <td class="text-nowrap" th:text="${#temporals.format(po.createdAt, 'yyyy-MM-dd HH:mm')}">2026-09-16</td>
+                    <td th:text="${po.expectedDeliveryDate != null ? #temporals.format(po.expectedDeliveryDate, 'yyyy-MM-dd') : '-'}">2026-09-20</td>
+                    <td th:text="${#lists.size(po.items)}">2</td>
+                    <td class="text-end">
+                        <a th:href="@{/purchase-orders/{id}(id=${po.id})}" class="btn btn-outline-secondary btn-sm btn-icon"><span class="icon-eye"></span>View</a>
+                    </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(recentOrders)}" class="empty-row">
+                    <td colspan="7" class="empty-state"><span class="icon-file-text-o"></span>No purchase orders yet.</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
 </body>
 </html>
