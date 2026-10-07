@@ -1,10 +1,65 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/app :: app('Profile Settings', ~{::main})}">
 <body>
+<main>
+    <div class="page-header">
+        <div>
+            <div class="title-section"><h2>Profile Settings</h2></div>
+            <p class="page-subtitle">Update your contact details and password</p>
+        </div>
+    </div>
 
+    <div class="panel" style="max-width: 900px;">
+        <div class="panel-body">
+            <form th:action="@{/profile}" th:object="${form}" method="post">
+                <th:block th:replace="~{fragments/alerts :: form-errors}"></th:block>
+
+                <h4 class="form-section-title mt-0">Contact Details</h4>
+                <div class="mb-3">
+                    <label for="fullName" class="form-label required">Full Name</label>
+                    <input type="text" th:field="*{fullName}" th:errorclass="is-invalid" class="form-control" required>
+                    <div class="invalid-feedback" th:if="${#fields.hasErrors('fullName')}" th:errors="*{fullName}"></div>
+                </div>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label for="email" class="form-label required">Email Address</label>
+                        <input type="email" th:field="*{email}" th:errorclass="is-invalid" class="form-control" required>
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="phone" class="form-label">Phone Number</label>
+                        <input type="text" th:field="*{phone}" class="form-control">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="address" class="form-label">Physical / Delivery Address</label>
+                    <textarea th:field="*{address}" class="form-control" rows="2"></textarea>
+                </div>
+
+                <h4 class="form-section-title">Change Password <small class="text-muted text-lowercase">(optional)</small></h4>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label for="currentPassword" class="form-label">Current Password</label>
+                        <input type="password" th:field="*{currentPassword}" class="form-control" autocomplete="current-password">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="newPassword" class="form-label">New Password</label>
+                        <input type="password" th:field="*{newPassword}" class="form-control" minlength="8" autocomplete="new-password">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="confirmPassword" class="form-label">Confirm New Password</label>
+                        <input type="password" th:field="*{confirmPassword}" class="form-control" minlength="8" autocomplete="new-password">
+                    </div>
+                </div>
+                <div class="form-text">Leave the password fields blank to keep your current password. Minimum 8 characters.</div>
+
+                <div class="form-actions">
+                    <a th:href="@{/dashboard}" class="btn btn-outline-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary btn-icon"><span class="icon-check"></span>Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</main>
 </body>
 </html>
