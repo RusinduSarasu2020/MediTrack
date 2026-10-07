@@ -1,10 +1,78 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{layouts/app :: app('Orders', ~{::main})}">
 <body>
+<main>
+    <div class="page-header">
+        <div>
+            <div class="title-section">
+                <h2 sec:authorize="hasRole('CUSTOMER')">My Orders</h2>
+                <h2 sec:authorize="!hasRole('CUSTOMER')">Customer Orders</h2>
+            </div>
+            <p class="page-subtitle">Online and in-store orders with payment and dispensing status</p>
+        </div>
+        <div class="page-actions">
+            <a sec:authorize="hasRole('CUSTOMER')" th:href="@{/catalog}" class="btn btn-primary btn-icon"><span class="icon-shopping_basket"></span>Shop Medicines</a>
+            <a sec:authorize="hasAnyRole('ADMIN', 'CASHIER')" th:href="@{/cashier/pos}" class="btn btn-primary btn-icon"><span class="icon-cart-plus"></span>New POS Sale</a>
+        </div>
+    </div>
 
+    <div class="panel">
+        <div class="table-toolbar">
+            <div class="search-field">
+                <span class="icon-search"></span>
+                <input type="search" class="form-control" placeholder="Search order number or customer..." data-table-search="#ordersTable">
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <select class="form-select" style="min-width: 210px;" data-table-filter="#ordersTable" aria-label="Filter by status">
+                    <option value="">All statuses</option>
+                    <option value="PENDING_PRESCRIPTION">Pending Rx Review</option>
+                    <option value="AWAITING_PAYMENT">Awaiting Payment</option>
+                    <option value="PAID">Paid</option>
+                    <option value="READY_FOR_COLLECTION">Ready for Collection</option>
+                    <option value="COMPLETED">Completed</option>
+                    <option value="CANCELLED">Cancelled</option>
+                    <option value="REJECTED">Rejected</option>
+                </select>
+                <span class="table-count text-nowrap" data-table-count="#ordersTable"></span>
+            </div>
+        </div>
+        <div class="table-wrap">
+            <table class="table table-hover" id="ordersTable">
+                <thead>
+                <tr>
+                    <th>Order</th>
+                    <th>Date</th>
+                    <th sec:authorize="!hasRole('CUSTOMER')">Customer</th>
+                    <th>Channel</th>
+                    <th>Status</th>
+                    <th class="text-end">Quote (LKR)</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="ord : ${orders}" th:attr="data-filter=${ord.status}">
+                    <td class="cell-strong" th:text="'#' + ${ord.id}">#1</td>
+                    <td class="text-nowrap" th:text="${#temporals.format(ord.createdAt, 'yyyy-MM-dd HH:mm')}">Date</td>
+                    <td sec:authorize="!hasRole('CUSTOMER')" th:text="${ord.customer != null ? ord.customer.fullName : 'Walk-in'}">Customer</td>
+                    <td><span class="status status-plain" th:text="${#strings.replace(ord.channel, '_', ' ')}">ONLINE</span></td>
+                    <td><th:block th:replace="~{fragments/status :: order(${ord.status})}"></th:block></td>
+                    <td class="text-end" th:text="${ord.quoteTotal != null ? #numbers.formatDecimal(ord.quoteTotal, 1, 'COMMA', 2, 'POINT') : '-'}">Total</td>
+                    <td class="text-end">
+                        <div class="action-group">
+                            <a th:href="@{/orders/{id}(id=${ord.id})}" class="btn btn-outline-secondary btn-sm btn-icon"><span class="icon-eye"></span>View</a>
+                            <a sec:authorize="hasAnyRole('CUSTOMER', 'ADMIN')" th:if="${ord.status.name() == 'AWAITING_PAYMENT'}"
+                               th:href="@{/payment/{id}(id=${ord.id})}" class="btn btn-primary btn-sm">Pay Now</a>
+                        </div>
+                    </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(orders)}" class="empty-row">
+                    <td colspan="7" class="empty-state"><span class="icon-receipt"></span>No orders found.</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
 </body>
 </html>
