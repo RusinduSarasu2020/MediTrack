@@ -1,10 +1,104 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{layouts/app :: app('Order #' + ${order.id}, ~{::main})}">
 <body>
+<main>
+    <div class="page-header">
+        <div>
+            <div class="title-section"><h2 th:text="'Order #' + ${order.id}">Order #1</h2></div>
+            <p class="page-subtitle">
+                <span th:text="'Placed ' + ${#temporals.format(order.createdAt, 'yyyy-MM-dd HH:mm')}">Date</span>
+                <span class="ms-2"><th:block th:replace="~{fragments/status :: order(${order.status})}"></th:block></span>
+            </p>
+        </div>
+        <div class="page-actions">
+            <a th:href="@{/orders}" class="btn btn-outline-secondary btn-icon"><span class="icon-arrow-left"></span>All Orders</a>
+        </div>
+    </div>
 
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="panel">
+                <div class="panel-header"><h3 class="panel-title"><span class="icon-medkit"></span>Order Items</h3></div>
+                <div class="table-wrap">
+                    <table class="table">
+                        <thead>
+                        <tr>
+                            <th>Medicine</th>
+                            <th>Quantity</th>
+                            <th>Type</th>
+                            <th class="text-end">Review</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="item : ${order.items}">
+                            <td>
+                                <span class="cell-strong" th:text="${item.medicine.brandName}">Name</span>
+                                <span class="cell-sub" th:text="${item.medicine.genericName} + ' · ' + ${item.medicine.strength}">Generic</span>
+                            </td>
+                            <td th:text="${item.quantity}">Qty</td>
+                            <td>
+                                <span class="status status-orange" th:if="${item.medicine.prescriptionRequired}">Prescription</span>
+                                <span class="status status-success" th:unless="${item.medicine.prescriptionRequired}">OTC</span>
+                            </td>
+                            <td class="text-end">
+                                <a sec:authorize="hasRole('CUSTOMER')" th:if="${order.status.name() == 'COMPLETED'}"
+                                   th:href="@{/reviews/new(orderId=${order.id}, medicineId=${item.medicine.id})}"
+                                   class="btn btn-outline-primary btn-sm btn-icon"><span class="icon-star"></span>Write Review</a>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(order.items)}" class="empty-row">
+                            <td colspan="4" class="empty-state"><span class="icon-assignment"></span>Prescription order &mdash; the pharmacist prepares the medicines from your uploaded prescription.</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div th:if="${!#lists.isEmpty(order.prescriptions)}" class="panel">
+                <div class="panel-header"><h3 class="panel-title"><span class="icon-assignment"></span>Prescription Status</h3></div>
+                <div class="panel-body">
+                    <div th:each="rx : ${order.prescriptions}" class="detail-list border rounded p-3 mb-2">
+                        <div class="row-item"><dt>Prescription</dt><dd>
+                            <a sec:authorize="hasRole('CUSTOMER')" th:href="@{/customer/prescriptions/{id}(id=${rx.id})}" th:text="'#' + ${rx.id}">#1</a>
+                            <a sec:authorize="hasAnyRole('PHARMACIST', 'ADMIN')" th:href="@{/pharmacist/prescriptions/{id}(id=${rx.id})}" th:text="'#' + ${rx.id}">#1</a>
+                            <span sec:authorize="!hasAnyRole('CUSTOMER', 'PHARMACIST', 'ADMIN')" th:text="'#' + ${rx.id}">#1</span></dd></div>
+                        <div class="row-item"><dt>Status</dt><dd><th:block th:replace="~{fragments/status :: rx(${rx.status})}"></th:block></dd></div>
+                        <div class="row-item" th:if="${rx.customerNote}"><dt>Customer note</dt><dd th:text="${rx.customerNote}">Note</dd></div>
+                        <div class="row-item" th:if="${rx.reviewNotes}"><dt>Pharmacist notes</dt><dd th:text="${rx.reviewNotes}">Notes</dd></div>
+                        <div class="row-item" th:if="${rx.fileId}"><dt>Document</dt>
+                            <dd><a th:href="@{/files/{id}(id=${rx.fileId})}" target="_blank" rel="noopener" class="btn btn-outline-secondary btn-sm btn-icon"><span class="icon-file-text-o"></span>View Prescription</a></dd>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="panel panel-accent-primary">
+                <div class="panel-header"><h3 class="panel-title">Order Summary</h3></div>
+                <div class="panel-body">
+                    <dl class="detail-list mb-3">
+                        <div class="row-item"><dt>Quote total</dt>
+                            <dd class="cell-strong" th:text="${order.quoteTotal != null ? 'LKR ' + #numbers.formatDecimal(order.quoteTotal, 1, 'COMMA', 2, 'POINT') : '-'}">LKR 0.00</dd></div>
+                        <div class="row-item"><dt>Channel</dt><dd th:text="${#strings.replace(order.channel, '_', ' ')}">ONLINE</dd></div>
+                        <div class="row-item"><dt>Customer</dt><dd th:text="${order.customer != null ? order.customer.fullName : 'Walk-in'}">Customer</dd></div>
+                        <div class="row-item" th:if="${order.paidAt != null}"><dt>Paid at</dt><dd th:text="${#temporals.format(order.paidAt, 'yyyy-MM-dd HH:mm')}">-</dd></div>
+                    </dl>
+
+                    <a th:if="${order.status.name() == 'AWAITING_PAYMENT'}" sec:authorize="hasAnyRole('CUSTOMER', 'ADMIN')"
+                       th:href="@{/payment/{id}(id=${order.id})}" class="btn btn-primary w-100 mb-2 btn-icon justify-content-center">
+                        <span class="icon-credit-card"></span>Proceed to Payment</a>
+
+                    <form th:if="${order.status.name() == 'PENDING_PRESCRIPTION' or order.status.name() == 'AWAITING_PAYMENT'}"
+                          th:action="@{/orders/{id}/cancel(id=${order.id})}" method="post"
+                          th:attr="data-confirm='Cancel order #' + ${order.id} + '? This cannot be undone.'" data-confirm-label="Cancel Order">
+                        <button type="submit" class="btn btn-outline-danger w-100">Cancel Order</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
 </body>
 </html>
