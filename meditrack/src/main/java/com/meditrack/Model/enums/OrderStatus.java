@@ -1,4 +1,12 @@
-package com.meditrack.Model.enums;
+package com.meditrack.enums;
 
-public class OrderStatus {
+public enum OrderStatus {
+    PENDING_PRESCRIPTION,
+    AWAITING_PAYMENT,
+    PAID,
+    PREPARING,
+    READY_FOR_COLLECTION,
+    COMPLETED,
+    CANCELLED,
+    REJECTED
 }
