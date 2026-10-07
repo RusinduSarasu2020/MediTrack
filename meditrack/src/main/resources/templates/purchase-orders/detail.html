@@ -1,10 +1,105 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/app :: app('Purchase Order #' + ${order.id}, ~{::main})}">
 <body>
+<main>
+    <div class="page-header">
+        <div>
+            <div class="title-section"><h2 th:text="'Purchase Order #' + ${order.id}">Purchase Order</h2></div>
+            <p class="page-subtitle">
+                <span th:text="${order.supplier.companyName}">Supplier</span>
+                <span class="ms-2"><th:block th:replace="~{fragments/status :: po(${order.status})}"></th:block></span>
+            </p>
+        </div>
+        <div class="page-actions">
+            <a th:href="@{/purchase-orders}" class="btn btn-outline-secondary btn-icon"><span class="icon-arrow-left"></span>All Orders</a>
+            <a th:if="${order.status.name() == 'DRAFT'}" th:href="@{/purchase-orders/{id}/edit(id=${order.id})}" class="btn btn-outline-primary btn-icon"><span class="icon-pencil"></span>Edit Draft</a>
+            <form th:if="${order.status.name() == 'DRAFT'}" th:action="@{/purchase-orders/{id}/confirm(id=${order.id})}" method="post"
+                  data-confirm="Confirm this purchase order and send it to the supplier?" data-confirm-label="Confirm &amp; Send">
+                <button type="submit" class="btn btn-primary btn-icon"><span class="icon-check"></span>Confirm &amp; Send</button>
+            </form>
+            <a th:if="${order.status.name() == 'ORDERED' or order.status.name() == 'PARTIALLY_RECEIVED'}"
+               th:href="@{/receipts/new(purchaseOrderId=${order.id})}" class="btn btn-primary btn-icon"><span class="icon-inbox"></span>Receive Goods (GRN)</a>
+            <form th:if="${order.status.name() == 'DRAFT' or order.status.name() == 'ORDERED'}"
+                  th:action="@{/purchase-orders/{id}/cancel(id=${order.id})}" method="post"
+                  data-confirm="Cancel this purchase order? This cannot be undone." data-confirm-label="Cancel PO">
+                <button type="submit" class="btn btn-outline-danger btn-icon"><span class="icon-close2"></span>Cancel PO</button>
+            </form>
+            <form th:if="${order.status.name() == 'DRAFT' or order.status.name() == 'CANCELLED'}"
+                  th:action="@{/purchase-orders/{id}/delete(id=${order.id})}" method="post"
+                  data-confirm="Delete this purchase order permanently?" data-confirm-label="Delete PO">
+                <button type="submit" class="btn btn-outline-danger btn-icon"><span class="icon-trash"></span>Delete</button>
+            </form>
+        </div>
+    </div>
 
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="panel h-100 mb-0">
+                <div class="panel-header"><h3 class="panel-title"><span class="icon-truck"></span>Supplier</h3></div>
+                <div class="panel-body">
+                    <dl class="detail-list">
+                        <div class="row-item"><dt>Company</dt><dd th:text="${order.supplier.companyName}">Supplier</dd></div>
+                        <div class="row-item"><dt>Contact</dt><dd th:text="${order.supplier.contactPerson}">Contact</dd></div>
+                        <div class="row-item"><dt>Email</dt><dd><a th:href="'mailto:' + ${order.supplier.email}" th:text="${order.supplier.email}">email</a></dd></div>
+                        <div class="row-item"><dt>Phone</dt><dd th:text="${order.supplier.phone}">phone</dd></div>
+                    </dl>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="panel h-100 mb-0">
+                <div class="panel-header"><h3 class="panel-title"><span class="icon-info"></span>Order Summary</h3></div>
+                <div class="panel-body">
+                    <dl class="detail-list">
+                        <div class="row-item"><dt>Created</dt><dd th:text="${#temporals.format(order.createdAt, 'yyyy-MM-dd HH:mm')}">-</dd></div>
+                        <div class="row-item"><dt>Created by</dt><dd th:text="${order.createdBy != null ? order.createdBy.fullName : '-'}">-</dd></div>
+                        <div class="row-item"><dt>Expected delivery</dt><dd th:text="${order.expectedDeliveryDate != null ? #temporals.format(order.expectedDeliveryDate, 'yyyy-MM-dd') : 'Unspecified'}">-</dd></div>
+                        <div class="row-item"><dt>Notes</dt><dd th:text="${order.notes != null ? order.notes : '-'}">-</dd></div>
+                        <div class="row-item" th:if="${order.completedAt != null}"><dt>Completed</dt><dd th:text="${#temporals.format(order.completedAt, 'yyyy-MM-dd HH:mm')}">-</dd></div>
+                        <div class="row-item"><dt>Order value</dt>
+                            <dd class="cell-strong" th:text="'LKR ' + (${#lists.isEmpty(order.items)} ? '0.00' : ${#numbers.formatDecimal(#aggregates.sum(order.items.![lineTotal]), 1, 'COMMA', 2, 'POINT')})">LKR 0.00</dd></div>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header"><h3 class="panel-title"><span class="icon-list"></span>Ordered Items</h3></div>
+        <div class="table-wrap">
+            <table class="table table-hover">
+                <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Medicine</th>
+                    <th class="text-end">Ordered</th>
+                    <th class="text-end">Received</th>
+                    <th class="text-end">Unit Cost (LKR)</th>
+                    <th class="text-end">Line Total (LKR)</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="item, stat : ${order.items}">
+                    <td th:text="${stat.count}">1</td>
+                    <td>
+                        <span class="cell-strong" th:text="${item.medicine.brandName}">Brand Name</span>
+                        <span class="cell-sub" th:text="${item.medicine.genericName}">Generic</span>
+                    </td>
+                    <td class="text-end" th:text="${item.quantityOrdered}">100</td>
+                    <td class="text-end">
+                        <span class="status" th:classappend="${item.quantityReceived >= item.quantityOrdered} ? 'status-success' : ''"
+                              th:text="${item.quantityReceived}">0</span>
+                    </td>
+                    <td class="text-end" th:text="${#numbers.formatDecimal(item.unitCost, 1, 'COMMA', 2, 'POINT')}">150.00</td>
+                    <td class="text-end cell-strong" th:text="${#numbers.formatDecimal(item.lineTotal, 1, 'COMMA', 2, 'POINT')}">15,000.00</td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(order.items)}" class="empty-row">
+                    <td colspan="6" class="empty-state">This purchase order has no items.</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
 </body>
 </html>

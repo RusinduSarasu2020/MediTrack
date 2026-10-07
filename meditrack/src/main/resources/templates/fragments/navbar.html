@@ -1,0 +1,13 @@
+<div xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+     th:fragment="navbar(active)" class="navbar">
+    <div class="brand">MediTrack &middot; Supplier Module</div>
+    <div class="nav-links">
+        <a th:href="@{/suppliers}" th:classappend="${active == 'suppliers'} ? 'active'">Supplier Directory</a>
+        <a th:href="@{/purchase-orders}" th:classappend="${active == 'orders'} ? 'active'">Purchase Orders</a>
+        <a th:href="@{/invoices}" th:classappend="${active == 'invoices'} ? 'active'">Invoices</a>
+        <span class="user-info" sec:authorize="isAuthenticated()">
+            | <span sec:authentication="name"></span>
+        </span>
+        <a th:href="@{/logout}">Logout</a>
+    </div>
+</div>
