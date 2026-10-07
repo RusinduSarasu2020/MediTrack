@@ -1,43 +1,68 @@
-package com.meditrack.meditrack.model;
+package com.meditrack.model;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import java.math.BigDecimal;
 
-/**
- * A single line item (medicine + quantity) within a Purchase Order.
- */
 @Entity
 @Table(name = "purchase_order_items")
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class PurchaseOrderItem {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long itemId;
+    private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "order_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "purchase_order_id", nullable = false)
     private PurchaseOrder purchaseOrder;
 
-    @NotBlank(message = "Medicine name is required")
-    private String medicineName;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "medicine_id", nullable = false)
+    private Medicine medicine;
 
-    @Min(value = 1, message = "Quantity must be at least 1")
-    private int quantity;
+    @Column(nullable = false)
+    private int orderedQty;
 
-    @Min(value = 0, message = "Unit price cannot be negative")
-    private double unitPrice;
+    @Column(nullable = false)
+    private int receivedQty = 0;
 
-    /** Current stock level at the time the order was raised (for reference) */
-    private int currentStockLevel;
+    @Column(nullable = false, precision = 12, scale = 2)
+    private BigDecimal unitCost;
 
-    public double getLineTotal() {
-        return quantity * unitPrice;
+    public PurchaseOrderItem() {}
+
+    public PurchaseOrderItem(PurchaseOrder purchaseOrder, Medicine medicine, int orderedQty, BigDecimal unitCost) {
+        this.purchaseOrder = purchaseOrder;
+        this.medicine = medicine;
+        this.orderedQty = orderedQty;
+        this.unitCost = unitCost;
+        this.receivedQty = 0;
+    }
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
+    public PurchaseOrder getPurchaseOrder() { return purchaseOrder; }
+    public void setPurchaseOrder(PurchaseOrder purchaseOrder) { this.purchaseOrder = purchaseOrder; }
+
+    public Medicine getMedicine() { return medicine; }
+    public void setMedicine(Medicine medicine) { this.medicine = medicine; }
+
+    public int getOrderedQty() { return orderedQty; }
+    public void setOrderedQty(int orderedQty) { this.orderedQty = orderedQty; }
+
+    public int getQuantityOrdered() { return orderedQty; }
+    public void setQuantityOrdered(int quantityOrdered) { this.orderedQty = quantityOrdered; }
+
+    public int getReceivedQty() { return receivedQty; }
+    public void setReceivedQty(int receivedQty) { this.receivedQty = receivedQty; }
+
+    public int getQuantityReceived() { return receivedQty; }
+    public void setQuantityReceived(int quantityReceived) { this.receivedQty = quantityReceived; }
+
+    public BigDecimal getUnitCost() { return unitCost; }
+    public void setUnitCost(BigDecimal unitCost) { this.unitCost = unitCost; }
+
+    public BigDecimal getLineTotal() {
+        return unitCost != null ? unitCost.multiply(BigDecimal.valueOf(orderedQty)) : BigDecimal.ZERO;
     }
 }
