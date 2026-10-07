@@ -1,8 +1,10 @@
 package com.meditrack.controller;
 
 import com.meditrack.dto.SupplierForm;
+import com.meditrack.exception.FieldValidationException;
 import com.meditrack.model.Supplier;
 import com.meditrack.model.User;
+import com.meditrack.service.InventoryService;
 import com.meditrack.service.ProcurementService;
 import com.meditrack.service.SupplierService;
 import com.meditrack.service.UserService;
@@ -20,11 +22,14 @@ public class SupplierController {
     private final SupplierService supplierService;
     private final ProcurementService procurementService;
     private final UserService userService;
+    private final InventoryService inventoryService;
 
-    public SupplierController(SupplierService supplierService, ProcurementService procurementService, UserService userService) {
+    public SupplierController(SupplierService supplierService, ProcurementService procurementService, UserService userService,
+                              InventoryService inventoryService) {
         this.supplierService = supplierService;
         this.procurementService = procurementService;
         this.userService = userService;
+        this.inventoryService = inventoryService;
     }
 
     @GetMapping("/supplier/dashboard")
@@ -55,9 +60,24 @@ public class SupplierController {
             return "suppliers/form";
         }
         User user = userService.findByUsername(authentication.getName());
-        supplierService.create(form, user.getId());
-        redirectAttributes.addFlashAttribute("successMessage", "Supplier registered successfully.");
-        return "redirect:/suppliers";
+        try {
+            Supplier saved = supplierService.create(form, user.getId());
+            redirectAttributes.addFlashAttribute("successMessage", "Supplier registered successfully.");
+            return "redirect:/suppliers/" + saved.getId();
+        } catch (FieldValidationException ex) {
+            errors.rejectValue(ex.getField(), "duplicate", ex.getMessage());
+            return "suppliers/form";
+        }
+    }
+
+    @GetMapping("/suppliers/{id}")
+    public String detail(@PathVariable Long id, Model model) {
+        Supplier supplier = supplierService.findById(id);
+        model.addAttribute("supplier", supplier);
+        model.addAttribute("orders", procurementService.findPurchaseOrdersBySupplier(id));
+        model.addAttribute("batches", inventoryService.findBatchesBySupplier(id));
+        model.addAttribute("referenceCount", supplierService.countReferences(id));
+        return "suppliers/detail";
     }
 
     @GetMapping("/suppliers/{id}/edit")
@@ -84,10 +104,16 @@ public class SupplierController {
         if (errors.hasErrors()) {
             return "suppliers/form";
         }
+        form.setId(id);
         User user = userService.findByUsername(authentication.getName());
-        supplierService.update(id, form, user.getId());
-        redirectAttributes.addFlashAttribute("successMessage", "Supplier updated successfully.");
-        return "redirect:/suppliers";
+        try {
+            supplierService.update(id, form, user.getId());
+            redirectAttributes.addFlashAttribute("successMessage", "Supplier updated successfully.");
+            return "redirect:/suppliers/" + id;
+        } catch (FieldValidationException ex) {
+            errors.rejectValue(ex.getField(), "duplicate", ex.getMessage());
+            return "suppliers/form";
+        }
     }
 
     @PostMapping("/suppliers/{id}/deactivate")
