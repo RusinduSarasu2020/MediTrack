@@ -1,10 +1,84 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/app :: app(${form.id != null ? 'Edit Purchase Order' : 'Create Purchase Order'}, ~{::main})}">
 <body>
+<main>
+    <div class="page-header">
+        <div>
+            <div class="title-section"><h2 th:text="${form.id != null ? 'Edit Draft PO #' + form.id : 'New Purchase Order'}">New Purchase Order</h2></div>
+            <p class="page-subtitle" th:text="${form.id != null} ? 'Drafts can be changed until they are confirmed and sent' : 'Created as a draft; confirm it to send to the supplier'">Created as a draft</p>
+        </div>
+        <div class="page-actions">
+            <a th:href="@{/purchase-orders}" class="btn btn-outline-secondary btn-icon"><span class="icon-arrow-left"></span>Back to Orders</a>
+        </div>
+    </div>
 
+    <div class="panel" style="max-width: 1100px;">
+        <div class="panel-body">
+            <form th:action="${form.id != null} ? @{/purchase-orders/{id}/edit(id=${form.id})} : @{/purchase-orders}" th:object="${form}" method="post">
+                <th:block th:replace="~{fragments/alerts :: form-errors}"></th:block>
+
+                <div class="row g-3 mb-2">
+                    <div class="col-md-6">
+                        <label for="supplierId" class="form-label required">Supplier</label>
+                        <select th:field="*{supplierId}" th:errorclass="is-invalid" class="form-select" required>
+                            <option value="">Select supplier</option>
+                            <option th:each="s : ${suppliers}" th:value="${s.id}" th:text="${s.companyName}">PharmaCorp</option>
+                        </select>
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('supplierId')}" th:errors="*{supplierId}"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="expectedDate" class="form-label">Expected Delivery Date</label>
+                        <input type="date" th:field="*{expectedDate}" class="form-control"
+                               th:min="${#temporals.format(#temporals.createToday(), 'yyyy-MM-dd')}">
+                    </div>
+                </div>
+                <div class="mb-2">
+                    <label for="notes" class="form-label">Notes</label>
+                    <textarea th:field="*{notes}" th:errorclass="is-invalid" class="form-control" rows="2" maxlength="500"
+                              placeholder="Delivery instructions, payment terms, reference numbers..."></textarea>
+                    <div class="invalid-feedback" th:if="${#fields.hasErrors('notes')}" th:errors="*{notes}"></div>
+                </div>
+
+                <h4 class="form-section-title">Order Lines</h4>
+                <p class="small text-muted">Empty lines are ignored.</p>
+                <div class="table-wrap mb-2">
+                    <table class="table table-plain" id="poItemsTable">
+                        <thead>
+                        <tr>
+                            <th style="width: 50%;">Medicine</th>
+                            <th style="width: 20%;">Quantity</th>
+                            <th style="width: 30%;">Unit Cost (LKR)</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="i : ${#numbers.sequence(0, (#lists.size(form.items) > 3 ? #lists.size(form.items) + 1 : 4))}"
+                            th:with="row=${i < #lists.size(form.items) ? form.items[i] : null}">
+                            <td>
+                                <select th:name="'items[' + ${i} + '].medicineId'" class="form-select" th:attr="aria-label='Medicine line ' + ${i + 1}">
+                                    <option value="">Choose medicine</option>
+                                    <option th:each="m : ${medicines}" th:value="${m.id}" th:selected="${row != null and row.medicineId == m.id}" th:text="${m.brandName + ' (' + m.genericName + ')'}">Paracetamol</option>
+                                </select>
+                            </td>
+                            <td>
+                                <input type="number" th:name="'items[' + ${i} + '].quantity'" th:value="${row != null ? row.quantity : ''}" class="form-control" min="1" placeholder="Qty"
+                                       th:attr="aria-label='Quantity line ' + ${i + 1}">
+                            </td>
+                            <td>
+                                <input type="number" step="0.01" th:name="'items[' + ${i} + '].unitCost'" th:value="${row != null ? row.unitCost : ''}" class="form-control" min="0" placeholder="0.00"
+                                       th:attr="aria-label='Unit cost line ' + ${i + 1}">
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="form-actions">
+                    <a th:href="${form.id != null} ? @{/purchase-orders/{id}(id=${form.id})} : @{/purchase-orders}" class="btn btn-outline-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary btn-icon"><span class="icon-check"></span><span th:text="${form.id != null} ? 'Save Draft' : 'Create Draft PO'">Create Draft PO</span></button>
+                </div>
+            </form>
+        </div>
+    </div>
+</main>
 </body>
 </html>

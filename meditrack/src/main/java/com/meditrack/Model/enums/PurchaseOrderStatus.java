@@ -1,4 +1,9 @@
-package com.meditrack.Model.enums;
+package com.meditrack.enums;
 
-public class PurchaseOrderStatus {
+public enum PurchaseOrderStatus {
+    DRAFT,
+    ORDERED,
+    PARTIALLY_RECEIVED,
+    RECEIVED,
+    CANCELLED
 }

@@ -1,10 +1,67 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/app :: app(${form.id != null ? 'Edit Supplier' : 'Register Supplier'}, ~{::main})}">
 <body>
+<main>
+    <div class="page-header">
+        <div>
+            <div class="title-section"><h2 th:text="${form.id != null ? 'Edit Supplier #' + form.id : 'Register Supplier'}">Supplier</h2></div>
+            <p class="page-subtitle">Company and contact details used on purchase orders</p>
+        </div>
+        <div class="page-actions">
+            <a th:href="@{/suppliers}" class="btn btn-outline-secondary btn-icon"><span class="icon-arrow-left"></span>Back to Directory</a>
+        </div>
+    </div>
 
+    <div class="panel" style="max-width: 900px;">
+        <div class="panel-body">
+            <form th:action="${form.id != null} ? @{/suppliers/{id}/edit(id=${form.id})} : @{/suppliers}"
+                  th:object="${form}" method="post">
+                <th:block th:replace="~{fragments/alerts :: form-errors}"></th:block>
+
+                <div class="mb-3">
+                    <label for="companyName" class="form-label required">Company Name</label>
+                    <input type="text" th:field="*{companyName}" th:errorclass="is-invalid" class="form-control" required>
+                    <div class="invalid-feedback" th:if="${#fields.hasErrors('companyName')}" th:errors="*{companyName}"></div>
+                </div>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label for="contactPerson" class="form-label required">Contact Person</label>
+                        <input type="text" th:field="*{contactPerson}" th:errorclass="is-invalid" class="form-control" required>
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('contactPerson')}" th:errors="*{contactPerson}"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="email" class="form-label required">Email Address</label>
+                        <input type="email" th:field="*{email}" th:errorclass="is-invalid" class="form-control" required>
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></div>
+                    </div>
+                </div>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label for="phone" class="form-label required">Phone Number</label>
+                        <input type="text" th:field="*{phone}" th:errorclass="is-invalid" class="form-control" required>
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('phone')}" th:errors="*{phone}"></div>
+                    </div>
+                    <div class="col-md-6 d-flex align-items-end">
+                        <div class="form-check form-switch mb-2">
+                            <input type="checkbox" th:field="*{active}" class="form-check-input" role="switch">
+                            <label class="form-check-label" th:for="${#ids.prev('active')}">Active supplier</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="address" class="form-label">Physical Address</label>
+                    <textarea th:field="*{address}" class="form-control" rows="2"></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <a th:href="@{/suppliers}" class="btn btn-outline-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary btn-icon"><span class="icon-check"></span>
+                        <span th:text="${form.id != null ? 'Update Supplier' : 'Save Supplier'}">Save Supplier</span></button>
+                </div>
+            </form>
+        </div>
+    </div>
+</main>
 </body>
 </html>

@@ -1,10 +1,81 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/app :: app('Suppliers', ~{::main})}">
 <body>
+<main>
+    <div class="page-header">
+        <div>
+            <div class="title-section"><h2>Supplier Directory</h2></div>
+            <p class="page-subtitle">Registered wholesale suppliers and their contacts</p>
+        </div>
+        <div class="page-actions">
+            <a th:href="@{/purchase-orders/new}" class="btn btn-outline-secondary btn-icon"><span class="icon-file-text-o"></span>New Purchase Order</a>
+            <a th:href="@{/suppliers/new}" class="btn btn-primary btn-icon"><span class="icon-plus"></span>Register Supplier</a>
+        </div>
+    </div>
 
+    <div class="panel">
+        <div class="table-toolbar">
+            <div class="search-field">
+                <span class="icon-search"></span>
+                <input type="search" class="form-control" placeholder="Search company, contact, email or phone..." data-table-search="#supplierTable">
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <select class="form-select" style="min-width: 160px;" data-table-filter="#supplierTable" aria-label="Filter by status">
+                    <option value="">All statuses</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                </select>
+                <span class="table-count text-nowrap" data-table-count="#supplierTable"></span>
+            </div>
+        </div>
+        <div class="table-wrap">
+            <table class="table table-hover" id="supplierTable">
+                <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Company</th>
+                    <th>Contact Person</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="s : ${suppliers}" th:attr="data-filter=${s.active ? 'active' : 'inactive'}">
+                    <td th:text="${s.id}">1</td>
+                    <td>
+                        <span class="cell-strong" th:text="${s.companyName}">Pharma Lanka Ltd</span>
+                        <span class="cell-sub" th:text="${s.address}">Colombo 03</span>
+                    </td>
+                    <td th:text="${s.contactPerson}">Sunil Perera</td>
+                    <td><a th:href="'mailto:' + ${s.email}" th:text="${s.email}">sunil@example.com</a></td>
+                    <td class="text-nowrap" th:text="${s.phone}">0112345678</td>
+                    <td><th:block th:replace="~{fragments/status :: active(${s.active})}"></th:block></td>
+                    <td class="text-end">
+                        <div class="action-group">
+                            <a th:href="@{/suppliers/{id}(id=${s.id})}" class="btn btn-outline-secondary btn-sm btn-icon"><span class="icon-eye"></span>View</a>
+                            <a th:href="@{/suppliers/{id}/edit(id=${s.id})}" class="btn btn-outline-primary btn-sm btn-icon"><span class="icon-pencil"></span>Edit</a>
+                            <form th:if="${s.active}" th:action="@{/suppliers/{id}/deactivate(id=${s.id})}" method="post"
+                                  th:attr="data-confirm='Deactivate supplier ' + ${s.companyName} + '? It will no longer appear when creating purchase orders.'"
+                                  data-confirm-label="Deactivate">
+                                <button type="submit" class="btn btn-outline-secondary btn-sm btn-icon"><span class="icon-block"></span>Deactivate</button>
+                            </form>
+                            <form th:action="@{/suppliers/{id}/delete(id=${s.id})}" method="post"
+                                  th:attr="data-confirm='Permanently delete supplier ' + ${s.companyName} + '? This cannot be undone. Suppliers linked to purchase orders or batches cannot be deleted.'"
+                                  data-confirm-label="Delete">
+                                <button type="submit" class="btn btn-outline-danger btn-sm btn-icon"><span class="icon-trash"></span>Delete</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(suppliers)}" class="empty-row">
+                    <td colspan="7" class="empty-state"><span class="icon-truck"></span>No suppliers registered yet.</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
 </body>
 </html>
