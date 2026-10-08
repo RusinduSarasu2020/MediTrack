@@ -1,10 +1,137 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/app :: app('Pharmacist Dashboard', ~{::main})}">
 
+<body>
+    <main>
+        <div class="page-header">
+            <div>
+                <div class="title-section">
+                    <h2>Pharmacist Dashboard</h2>
+                </div>
+                <p class="page-subtitle">Prescription verification, dispensing and stock watch</p>
+            </div>
+            <div class="page-actions">
+                <a th:href="@{/pharmacist/prescriptions}" class="btn btn-primary btn-icon"><span
+                        class="icon-assignment"></span>Review Prescriptions</a>
+                <a th:href="@{/pharmacist/dispensing}" class="btn btn-outline-secondary btn-icon"><span
+                        class="icon-assignment_turned_in"></span>Dispensing</a>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <div class="col-md-4">
+                <a th:href="@{/pharmacist/prescriptions}" class="stat-tile tile-warning">
+                    <span class="stat-icon icon-assignment"></span>
+                    <span class="stat-label">Pending Prescriptions</span>
+                    <div class="stat-value" th:text="${#lists.size(pendingPrescriptions)}">0</div>
+                    <span class="stat-note">Requires clinical review &rarr;</span>
+                </a>
+            </div>
+            <div class="col-md-4">
+                <a th:href="@{/pharmacist/dispensing}" class="stat-tile tile-primary">
+                    <span class="stat-icon icon-assignment_turned_in"></span>
+                    <span class="stat-label">Awaiting Dispensing</span>
+                    <div class="stat-value" th:text="${#lists.size(awaitingDispensing)}">0</div>
+                    <span class="stat-note">Paid orders ready to hand over &rarr;</span>
+                </a>
+            </div>
+            <div class="col-md-4">
+                <a th:href="@{/inventory/alerts}" class="stat-tile tile-dark">
+                    <span class="stat-icon icon-warning"></span>
+                    <span class="stat-label">Low Stock Medicines</span>
+                    <div class="stat-value" th:text="${#lists.size(lowStockMedicines)}">0</div>
+                    <span class="stat-note">View stock alerts &rarr;</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-xl-6">
+                <div class="panel h-100 mb-0">
+                    <div class="panel-header">
+                        <h3 class="panel-title"><span class="icon-assignment"></span>Prescriptions to Verify</h3>
+                        <a th:href="@{/pharmacist/prescriptions}" class="btn btn-outline-secondary btn-sm">View All</a>
+                    </div>
+                    <div class="table-wrap">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Rx</th>
+                                    <th>Customer</th>
+                                    <th>Uploaded</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="rx : ${pendingPrescriptions}">
+                                    <td class="cell-strong" th:text="'#' + ${rx.id}">#1</td>
+                                    <td>
+                                        <span
+                                            th:text="${rx.order.customer != null ? rx.order.customer.fullName : 'Walk-in'}">Customer</span>
+                                        <span class="cell-sub" th:text="'Order #' + ${rx.order.id}">Order #1</span>
+                                    </td>
+                                    <td class="text-nowrap"
+                                        th:text="${#temporals.format(rx.createdAt, 'yyyy-MM-dd HH:mm')}">2026-09-16</td>
+                                    <td>
+                                        <th:block th:replace="~{fragments/status :: rx(${rx.status})}"></th:block>
+                                    </td>
+                                    <td class="text-end">
+                                        <a th:href="@{/pharmacist/prescriptions/{id}(id=${rx.id})}"
+                                            class="btn btn-primary btn-sm">Review</a>
+                                    </td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(pendingPrescriptions)}" class="empty-row">
+                                    <td colspan="5" class="empty-state"><span class="icon-done_all"></span>No pending
+                                        prescriptions. All verified!</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-6">
+                <div class="panel h-100 mb-0">
+                    <div class="panel-header">
+                        <h3 class="panel-title"><span class="icon-assignment_turned_in"></span>Paid Orders Ready for
+                            Dispensing</h3>
+                        <a th:href="@{/pharmacist/dispensing}" class="btn btn-outline-secondary btn-sm">Open Station</a>
+                    </div>
+                    <div class="table-wrap">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Order</th>
+                                    <th>Customer</th>
+                                    <th class="text-end">Total (LKR)</th>
+                                    <th class="text-end">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="ord : ${awaitingDispensing}">
+                                    <td class="cell-strong" th:text="'#' + ${ord.id}">#1</td>
+                                    <td th:text="${ord.customer != null ? ord.customer.fullName : 'In-store walk-in'}">
+                                        Customer</td>
+                                    <td class="text-end"
+                                        th:text="${ord.quoteTotal != null ? #numbers.formatDecimal(ord.quoteTotal, 1, 'COMMA', 2, 'POINT') : '-'}">
+                                        1,250.00</td>
+                                    <td class="text-end">
+                                        <a th:href="@{/pharmacist/dispensing}"
+                                            class="btn btn-outline-primary btn-sm">Dispense</a>
+                                    </td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(awaitingDispensing)}" class="empty-row">
+                                    <td colspan="4" class="empty-state"><span class="icon-inbox"></span>No orders
+                                        awaiting dispensing.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
 </body>
+
 </html>

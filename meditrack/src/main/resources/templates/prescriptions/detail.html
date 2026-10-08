@@ -1,10 +1,161 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+    th:replace="~{layouts/app :: app('Prescription #' + ${prescription.id}, ~{::main})}">
 
+<body>
+    <main>
+        <div class="page-header">
+            <div>
+                <div class="title-section">
+                    <h2 th:text="'Prescription Review #' + ${prescription.id}">Prescription Review</h2>
+                </div>
+                <p class="page-subtitle">
+                    <span
+                        th:text="'Order #' + ${prescription.order.id} + ' · uploaded ' + ${#temporals.format(prescription.createdAt, 'yyyy-MM-dd HH:mm')}">Order</span>
+                    <span class="ms-2">
+                        <th:block th:replace="~{fragments/status :: rx(${prescription.status})}"></th:block>
+                    </span>
+                </p>
+            </div>
+            <div class="page-actions">
+                <a th:href="@{/pharmacist/prescriptions}" class="btn btn-outline-secondary btn-icon"><span
+                        class="icon-arrow-left"></span>Back to Queue</a>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <div class="col-lg-6">
+                <div class="panel h-100 mb-0">
+                    <div class="panel-header">
+                        <h3 class="panel-title"><span class="icon-person"></span>Patient &amp; Document</h3>
+                    </div>
+                    <div class="panel-body">
+                        <dl class="detail-list">
+                            <div class="row-item">
+                                <dt>Customer</dt>
+                                <dd
+                                    th:text="${prescription.order.customer != null ? prescription.order.customer.fullName : 'Walk-in'}">
+                                    Name</dd>
+                            </div>
+                            <div class="row-item">
+                                <dt>Phone</dt>
+                                <dd
+                                    th:text="${prescription.order.customer != null and prescription.order.customer.phone != null ? prescription.order.customer.phone : '-'}">
+                                    Phone</dd>
+                            </div>
+                            <div class="row-item">
+                                <dt>Email</dt>
+                                <dd
+                                    th:text="${prescription.order.customer != null ? prescription.order.customer.email : '-'}">
+                                    Email</dd>
+                            </div>
+                            <div class="row-item">
+                                <dt>Order</dt>
+                                <dd><a th:href="@{/orders/{id}(id=${prescription.order.id})}"
+                                        th:text="'#' + ${prescription.order.id}">#1</a></dd>
+                            </div>
+                            <div class="row-item">
+                                <dt>Uploaded</dt>
+                                <dd th:text="${#temporals.format(prescription.createdAt, 'yyyy-MM-dd HH:mm:ss')}">-</dd>
+                            </div>
+                            <div class="row-item" th:if="${prescription.reviewedBy != null}">
+                                <dt>Reviewed by</dt>
+                                <dd
+                                    th:text="${prescription.reviewedBy.fullName} + ' · ' + ${#temporals.format(prescription.reviewedAt, 'yyyy-MM-dd HH:mm')}">
+                                    -</dd>
+                            </div>
+                            <div class="row-item" th:if="${prescription.reviewNotes != null}">
+                                <dt>Review notes</dt>
+                                <dd th:text="${prescription.reviewNotes}">-</dd>
+                            </div>
+                        </dl>
+                        <a th:if="${prescription.fileId != null}" th:href="@{/files/{id}(id=${prescription.fileId})}"
+                            target="_blank" rel="noopener" class="btn btn-outline-primary btn-icon mt-3"><span
+                                class="icon-file-text-o"></span>View / Download Prescription</a>
+                        <p th:if="${prescription.fileId == null}" class="text-muted mt-3 mb-0">No document was attached.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="panel panel-accent-primary h-100 mb-0">
+                    <div class="panel-header">
+                        <h3 class="panel-title"><span class="icon-assignment_turned_in"></span>Clinical Decision</h3>
+                    </div>
+                    <div class="panel-body">
+                        <form th:if="${prescription.status.name() == 'PENDING'}"
+                            th:action="@{/pharmacist/prescriptions/{id}/review(id=${prescription.id})}"
+                            th:object="${form}" method="post"
+                            data-confirm="Record this decision? The customer will be notified and the order status will change."
+                            data-confirm-label="Record Decision">
+                            <input type="hidden" th:field="*{prescriptionId}">
+                            <div class="mb-3">
+                                <label for="status" class="form-label required">Verification Decision</label>
+                                <select th:field="*{status}" class="form-select" required>
+                                    <option value="APPROVED">Approve &mdash; legitimate and safe to dispense</option>
+                                    <option value="REJECTED">Reject &mdash; invalid, expired, illegible or unsafe
+                                    </option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="reviewNotes" class="form-label">Clinical Notes</label>
+                                <textarea th:field="*{reviewNotes}" class="form-control" rows="4"
+                                    placeholder="Dosage instructions, reason for rejection or dispensing precautions..."></textarea>
+                                <div class="form-text">Rejection notes are sent to the customer.</div>
+                            </div>
+                            <div class="form-actions">
+                                <a th:href="@{/pharmacist/prescriptions}" class="btn btn-outline-secondary">Cancel</a>
+                                <button type="submit" class="btn btn-primary btn-icon"><span
+                                        class="icon-check"></span>Record Decision</button>
+                            </div>
+                        </form>
+                        <div th:unless="${prescription.status.name() == 'PENDING'}" class="alert alert-info mb-0">
+                            <span class="alert-icon icon-info"></span>
+                            <div class="alert-body">This prescription has already been reviewed and can no longer be
+                                changed.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-header">
+                <h3 class="panel-title"><span class="icon-medkit"></span>Ordered Medicines</h3>
+            </div>
+            <div class="table-wrap">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Medicine</th>
+                            <th>Strength / Form</th>
+                            <th>Type</th>
+                            <th class="text-end">Quantity</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="it : ${prescription.order.items}">
+                            <td>
+                                <span class="cell-strong" th:text="${it.medicine.brandName}">Brand</span>
+                                <span class="cell-sub" th:text="${it.medicine.genericName}">Generic</span>
+                            </td>
+                            <td th:text="${it.medicine.strength} + ' · ' + ${it.medicine.dosageForm}">500mg</td>
+                            <td>
+                                <span class="status status-orange" th:if="${it.medicine.prescriptionRequired}">Rx</span>
+                                <span class="status status-success"
+                                    th:unless="${it.medicine.prescriptionRequired}">OTC</span>
+                            </td>
+                            <td class="text-end cell-strong" th:text="${it.quantity}">14</td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(prescription.order.items)}" class="empty-row">
+                            <td colspan="4" class="empty-state">No items on this order.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
 </body>
+
 </html>

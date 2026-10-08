@@ -1,10 +1,95 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/app :: app('Dispensing Station', ~{::main})}">
 
+<body>
+    <main>
+        <div class="page-header">
+            <div>
+                <div class="title-section">
+                    <h2>Dispensing Station</h2>
+                </div>
+                <p class="page-subtitle">Paid orders ready for customer collection</p>
+            </div>
+        </div>
+
+        <div class="alert alert-info mb-4">
+            <span class="alert-icon icon-info"></span>
+            <div class="alert-body">
+                <span class="alert-title">Single-event stock rule</span>
+                Stock was already deducted when payment was confirmed. Dispensing records an immutable handover
+                and marks the order as <strong>Ready for Collection</strong> without deducting stock again.
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="table-toolbar">
+                <div class="search-field">
+                    <span class="icon-search"></span>
+                    <input type="search" class="form-control" placeholder="Search order, customer or medicine..."
+                        data-table-search="#dispenseTable">
+                </div>
+                <span class="table-count" data-table-count="#dispenseTable"></span>
+            </div>
+            <div class="table-wrap">
+                <table class="table table-hover" id="dispenseTable">
+                    <thead>
+                        <tr>
+                            <th>Order</th>
+                            <th>Customer</th>
+                            <th>Channel</th>
+                            <th>Items</th>
+                            <th class="text-end">Total (LKR)</th>
+                            <th style="min-width: 300px;">Handover</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="ord : ${orders}">
+                            <td>
+                                <a class="cell-strong text-black" th:href="@{/orders/{id}(id=${ord.id})}"
+                                    th:text="'#' + ${ord.id}">#1</a>
+                                <span class="cell-sub"
+                                    th:text="${ord.paidAt != null ? 'Paid ' + #temporals.format(ord.paidAt, 'yyyy-MM-dd HH:mm') : ''}">Paid</span>
+                            </td>
+                            <td>
+                                <span
+                                    th:text="${ord.customer != null ? ord.customer.fullName : 'In-store walk-in'}">Customer</span>
+                                <span class="cell-sub"
+                                    th:text="${ord.customer != null ? ord.customer.phone : ''}">Phone</span>
+                            </td>
+                            <td><span class="status status-plain"
+                                    th:text="${#strings.replace(ord.channel, '_', ' ')}">ONLINE</span></td>
+                            <td>
+                                <ul class="list-unstyled mb-0 small">
+                                    <li th:each="item : ${ord.items}">
+                                        <span th:text="${item.medicine.brandName}">Amoxicillin</span> &times; <strong
+                                            th:text="${item.quantity}">10</strong>
+                                    </li>
+                                </ul>
+                            </td>
+                            <td class="text-end"
+                                th:text="${ord.quoteTotal != null ? #numbers.formatDecimal(ord.quoteTotal, 1, 'COMMA', 2, 'POINT') : '-'}">
+                                1,500.00</td>
+                            <td>
+                                <form th:action="@{/pharmacist/dispensing/{id}(id=${ord.id})}" method="post"
+                                    class="d-flex gap-2"
+                                    th:attr="data-confirm='Confirm handover of order #' + ${ord.id} + ' to the customer?'"
+                                    data-confirm-label="Hand Over">
+                                    <input type="text" name="notes" class="form-control form-control-sm"
+                                        placeholder="Counselling notes (optional)" aria-label="Counselling notes">
+                                    <button type="submit" class="btn btn-primary btn-sm btn-icon text-nowrap"><span
+                                            class="icon-check"></span>Hand Over</button>
+                                </form>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(orders)}" class="empty-row">
+                            <td colspan="6" class="empty-state"><span class="icon-assignment_turned_in"></span>No paid
+                                orders currently awaiting dispensing.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
 </body>
+
 </html>
