@@ -1,10 +1,90 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/app :: app('My Account', ~{::main})}">
 <body>
+<main>
+    <div class="page-header">
+        <div>
+            <div class="title-section"><h2>Welcome back, <span th:text="${user.fullName}">Customer</span></h2></div>
+            <p class="page-subtitle">Track your orders, prescriptions and account details</p>
+        </div>
+        <div class="page-actions">
+            <a th:href="@{/customer/prescriptions/new}" class="btn btn-outline-primary btn-icon"><span class="icon-cloud_upload"></span>Upload Prescription</a>
+            <a th:href="@{/catalog}" class="btn btn-primary btn-icon"><span class="icon-shopping_basket"></span>Shop Medicines</a>
+        </div>
+    </div>
 
+    <div class="row g-4 mb-4">
+        <div class="col-md-6 col-xl-3">
+            <a th:href="@{/orders}" class="stat-tile tile-primary">
+                <span class="stat-icon icon-receipt"></span>
+                <span class="stat-label">My Orders</span>
+                <div class="stat-value" th:text="${#lists.size(recentOrders)}">0</div>
+                <span class="stat-note">View order history &rarr;</span>
+            </a>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <a th:href="@{/customer/prescriptions}" class="stat-tile tile-warning">
+                <span class="stat-icon icon-assignment"></span>
+                <span class="stat-label">My Prescriptions</span>
+                <div class="stat-value" th:text="${#lists.size(prescriptions)}">0</div>
+                <span class="stat-note" th:text="${#lists.size(prescriptions.?[status.name() == 'READY'])} + ' ready for collection →'">0 ready</span>
+            </a>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <a th:href="@{/notifications}" class="stat-tile tile-green">
+                <span class="stat-icon icon-notifications_none"></span>
+                <span class="stat-label">Unread Notifications</span>
+                <div class="stat-value" th:text="${#lists.size(notifications.?[readAt == null])}">0</div>
+                <span class="stat-note" th:text="${#lists.size(notifications)} + ' total →'">0 total</span>
+            </a>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <a th:href="@{/profile}" class="stat-tile">
+                <span class="stat-icon icon-person"></span>
+                <span class="stat-label">My Profile</span>
+                <div class="stat-value text-truncate" style="font-size: 1.15rem;" th:text="${user.email}">user@example.com</div>
+                <span class="stat-note text-primary">Update details &rarr;</span>
+            </a>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header">
+            <h3 class="panel-title"><span class="icon-history"></span>Recent Orders</h3>
+            <a th:href="@{/orders}" class="btn btn-outline-secondary btn-sm">View All</a>
+        </div>
+        <div class="table-wrap">
+            <table class="table table-hover">
+                <thead>
+                <tr>
+                    <th>Order</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th class="text-end">Total (LKR)</th>
+                    <th class="text-end">Action</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="ord, stat : ${recentOrders}" th:if="${stat.count <= 10}">
+                    <td class="cell-strong" th:text="'#' + ${ord.id}">#1</td>
+                    <td class="text-nowrap" th:text="${#temporals.format(ord.createdAt, 'yyyy-MM-dd HH:mm')}">2026-09-16</td>
+                    <td><th:block th:replace="~{fragments/status :: order(${ord.status})}"></th:block></td>
+                    <td class="text-end" th:text="${ord.quoteTotal != null ? #numbers.formatDecimal(ord.quoteTotal, 1, 'COMMA', 2, 'POINT') : '-'}">1,250.00</td>
+                    <td class="text-end">
+                        <div class="action-group">
+                            <a th:href="@{/orders/{id}(id=${ord.id})}" class="btn btn-outline-secondary btn-sm btn-icon"><span class="icon-eye"></span>View</a>
+                            <a th:if="${ord.status.name() == 'AWAITING_PAYMENT'}" th:href="@{/payment/{id}(id=${ord.id})}" class="btn btn-primary btn-sm">Pay Now</a>
+                        </div>
+                    </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(recentOrders)}" class="empty-row">
+                    <td colspan="5" class="empty-state"><span class="icon-shopping-bag"></span>You haven't placed any orders yet.
+                        <div class="mt-3"><a th:href="@{/catalog}" class="btn btn-primary btn-sm">Browse Medicines</a></div></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
 </body>
 </html>

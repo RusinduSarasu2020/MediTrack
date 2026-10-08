@@ -1,0 +1,12 @@
+package com.meditrack.enums;
+
+public enum NotificationType {
+    GENERAL,
+    PRESCRIPTION_SUBMITTED,
+    PRESCRIPTION_UNDER_REVIEW,
+    PRESCRIPTION_APPROVED,
+    PRESCRIPTION_REJECTED,
+    ORDER_PREPARING,
+    ORDER_READY,
+    ORDER_COMPLETED
+}

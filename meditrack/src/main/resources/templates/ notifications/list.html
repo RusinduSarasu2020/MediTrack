@@ -1,10 +1,51 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/app :: app('Notifications', ~{::main})}">
 <body>
+<main>
+    <div class="page-header">
+        <div>
+            <div class="title-section"><h2>Notifications</h2></div>
+            <p class="page-subtitle">
+                <span th:text="${#lists.size(notifications.?[readAt == null])}">0</span> unread of
+                <span th:text="${#lists.size(notifications)}">0</span>
+            </p>
+        </div>
+        <div class="page-actions">
+            <form th:if="${!#lists.isEmpty(notifications.?[readAt == null])}" th:action="@{/notifications/read-all}" method="post" class="m-0">
+                <button type="submit" class="btn btn-outline-primary btn-icon"><span class="icon-done_all"></span>Mark all as read</button>
+            </form>
+            <a th:href="@{/dashboard}" class="btn btn-outline-secondary btn-icon"><span class="icon-arrow-left"></span>Back to Dashboard</a>
+        </div>
+    </div>
 
+    <div class="panel" style="max-width: 1000px;">
+        <ul class="notice-list">
+            <li th:each="n : ${notifications}" th:classappend="${n.readAt == null} ? 'unread'">
+                <div class="d-flex gap-3 align-items-start">
+                    <span class="notice-icon" th:classappend="${n.readAt == null} ? 'icon-notifications_active' : 'icon-notifications_none'"></span>
+                    <div>
+                        <p class="notice-text">
+                            <strong th:if="${n.title != null}" class="d-block" th:text="${n.title}">Order Ready</strong>
+                            <span th:text="${n.message}">Notification content</span>
+                        </p>
+                        <small class="text-muted" th:text="${#temporals.format(n.createdAt, 'yyyy-MM-dd HH:mm')}">2026-09-16 12:00</small>
+                    </div>
+                </div>
+                <div class="action-group flex-nowrap">
+                    <form th:if="${n.link != null and !#strings.isEmpty(n.link)}" th:action="@{/notifications/{id}/open(id=${n.id})}" method="post">
+                        <button type="submit" class="btn btn-outline-secondary btn-sm">Open</button>
+                    </form>
+                    <form th:if="${n.readAt == null}" th:action="@{/notifications/{id}/read(id=${n.id})}" method="post">
+                        <button type="submit" class="btn btn-outline-primary btn-sm text-nowrap">Mark as read</button>
+                    </form>
+                    <span th:unless="${n.readAt == null}" class="status">Read</span>
+                </div>
+            </li>
+            <li th:if="${#lists.isEmpty(notifications)}" class="justify-content-center">
+                <div class="empty-state w-100"><span class="icon-notifications_none"></span>You have no notifications.</div>
+            </li>
+        </ul>
+    </div>
+</main>
 </body>
 </html>

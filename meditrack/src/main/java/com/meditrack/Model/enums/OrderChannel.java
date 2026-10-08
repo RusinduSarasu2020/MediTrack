@@ -1,4 +1,6 @@
-package com.meditrack.Model.enums;
+package com.meditrack.enums;
 
-public class OrderChannel {
+public enum OrderChannel {
+    ONLINE,
+    IN_STORE
 }

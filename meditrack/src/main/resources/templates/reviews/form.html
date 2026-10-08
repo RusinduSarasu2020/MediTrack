@@ -1,10 +1,47 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/app :: app('Write a Review', ~{::main})}">
 <body>
+<main>
+    <div class="page-header">
+        <div>
+            <div class="title-section"><h2>Write a Review</h2></div>
+            <p class="page-subtitle">Share your experience with this medicine</p>
+        </div>
+        <div class="page-actions">
+            <a th:href="@{/orders/{id}(id=${form.orderId})}" class="btn btn-outline-secondary btn-icon"><span class="icon-arrow-left"></span>Back to Order</a>
+        </div>
+    </div>
 
+    <div class="panel" style="max-width: 720px;">
+        <div class="panel-body">
+            <form th:action="@{/reviews}" th:object="${form}" method="post">
+                <th:block th:replace="~{fragments/alerts :: form-errors}"></th:block>
+                <input type="hidden" th:field="*{orderId}">
+                <input type="hidden" th:field="*{medicineId}">
+
+                <div class="mb-3">
+                    <label for="rating" class="form-label required">Rating</label>
+                    <select class="form-select" th:field="*{rating}" th:errorclass="is-invalid">
+                        <option value="5">&#9733;&#9733;&#9733;&#9733;&#9733; &nbsp;Excellent</option>
+                        <option value="4">&#9733;&#9733;&#9733;&#9733; &nbsp;Good</option>
+                        <option value="3">&#9733;&#9733;&#9733; &nbsp;Average</option>
+                        <option value="2">&#9733;&#9733; &nbsp;Poor</option>
+                        <option value="1">&#9733; &nbsp;Very bad</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="comment" class="form-label">Your Feedback</label>
+                    <textarea class="form-control" th:field="*{comment}" th:errorclass="is-invalid" rows="4"
+                              placeholder="Share your experience with this medication..."></textarea>
+                    <div class="invalid-feedback" th:if="${#fields.hasErrors('comment')}" th:errors="*{comment}"></div>
+                </div>
+                <div class="form-actions">
+                    <a th:href="@{/orders/{id}(id=${form.orderId})}" class="btn btn-outline-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary btn-icon"><span class="icon-star"></span>Submit Review</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</main>
 </body>
 </html>

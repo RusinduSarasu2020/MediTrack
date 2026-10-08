@@ -1,10 +1,70 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layouts/app :: app('Checkout', ~{::main})}">
 <body>
+<main>
+    <div class="page-header">
+        <div>
+            <div class="title-section"><h2>Checkout</h2></div>
+            <p class="page-subtitle">Confirm your items and place the order</p>
+        </div>
+        <div class="page-actions">
+            <a th:href="@{/cart}" class="btn btn-outline-secondary btn-icon"><span class="icon-arrow-left"></span>Back to Cart</a>
+        </div>
+    </div>
 
+    <form th:action="@{/orders/checkout}" method="post" enctype="multipart/form-data">
+        <div class="row g-4">
+            <div class="col-lg-7">
+                <div th:if="${requiresPrescription}" class="panel panel-accent-warning">
+                    <div class="panel-header"><h3 class="panel-title"><span class="icon-assignment"></span>Prescription Upload Required</h3></div>
+                    <div class="panel-body">
+                        <p>One or more items require a valid prescription. Upload a clear photo or PDF (max 5MB).
+                            A pharmacist will review it before you can pay.</p>
+                        <label for="prescriptionFile" class="form-label required">Doctor's Prescription (JPEG, PNG or PDF)</label>
+                        <input class="form-control" type="file" id="prescriptionFile" name="prescriptionFile" required accept=".jpg,.jpeg,.png,.pdf">
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header"><h3 class="panel-title"><span class="icon-local_shipping"></span>Collection</h3></div>
+                    <div class="panel-body">
+                        <p class="mb-0">Collect your order at the MediTrack branch counter. Stock availability is verified and
+                            reserved when payment succeeds.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-5">
+                <div class="panel panel-accent-primary">
+                    <div class="panel-header"><h3 class="panel-title">Your Order</h3></div>
+                    <div class="table-wrap">
+                        <table class="table table-plain">
+                            <thead>
+                            <tr><th>Product</th><th class="text-end">Total</th></tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="item : ${items}">
+                                <td>
+                                    <span th:text="${item.name}">Item</span> <strong>&times; <span th:text="${item.quantity}">1</span></strong>
+                                    <span class="status status-orange ms-1" th:if="${item.prescriptionRequired}">Rx</span>
+                                </td>
+                                <td class="text-end text-nowrap" th:text="'LKR ' + ${#numbers.formatDecimal(item.subtotal, 1, 'COMMA', 2, 'POINT')}">0.00</td>
+                            </tr>
+                            <tr>
+                                <td class="cell-strong">Estimated total</td>
+                                <td class="text-end cell-strong text-nowrap" th:text="'LKR ' + ${#numbers.formatDecimal(subtotal, 1, 'COMMA', 2, 'POINT')}">0.00</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="panel-body">
+                        <p class="small text-muted">Final total including tax and discounts is calculated at payment.</p>
+                        <button type="submit" class="btn btn-primary btn-lg w-100">Place Order</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</main>
 </body>
 </html>
